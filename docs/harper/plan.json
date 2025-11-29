@@ -1,8 +1,8 @@
 {
   "snapshot": {
     "total": 7,
-    "open": 3,
-    "in_progress": 4,
+    "open": 2,
+    "in_progress": 5,
     "done": 0,
     "deferred": 0,
     "progressPct": 0
@@ -100,7 +100,7 @@
         "REQ-006"
       ],
       "track": "App",
-      "status": "open",
+      "status": "in_progress",
       "lane": "python",
       "test_profile": "pytest-admin",
       "gate_policy_ref": "docs/harper/lane-guides/python.md"
