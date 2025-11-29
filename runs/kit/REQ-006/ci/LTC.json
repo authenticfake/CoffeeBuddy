@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "req_id": "REQ-006",
+  "lane": "sql",
+  "env": {},
+  "tools": {
+    "tests": true,
+    "lint": false,
+    "types": false,
+    "security": false,
+    "build": false
+  },
+  "commands": {
+    "tests": "pytest -q runs/kit/REQ-006/test --junitxml=runs/kit/REQ-006/reports/junit.xml"
+  },
+  "cases": [
+    {
+      "name": "tests",
+      "run": "pytest -q runs/kit/REQ-006/test --junitxml=runs/kit/REQ-006/reports/junit.xml",
+      "cwd": ".",
+      "pip-file": "runs/kit/REQ-006/requirements.txt",
+      "expect": 0,
+      "timeout": 900
+    }
+  ],
+  "reports": [
+    {
+      "kind": "junit",
+      "path": "runs/kit/REQ-006/reports/junit.xml",
+      "format": "junit-xml"
+    }
+  ],
+  "normalize": {
+    "tests_pass": {
+      "case": "tests"
+    }
+  },
+  "gate_policy": {
+    "tests_pass": true,
+    "coverage_min": 0.0
+  },
+  "constraints_applied": [
+    "Single source schema spec",
+    "Idempotent SQL migrations",
+    "Containerized Postgres tests"
+  ]
+}

@@ -2,8 +2,8 @@
 
 ## Plan Snapshot
 
-- **Counts:** 7 total / 7 open / 0 done / 0 deferred
-- **Progress:** 0% complete (done / total)
+- **Counts:** total=7 / open=6 / in_progress=1 / done=0 / deferred=0
+- **Progress:** 0% complete
 - **Checklist:**
   - [x] SPEC aligned
   - [x] Prior REQ reconciled
@@ -27,14 +27,17 @@
 
 ## REQ-IDs Table
 
-| ID | Title | Acceptance (≤3 bullets) | DependsOn [IDs] | Track | Status |
-| --- | --- | --- | --- | --- | --- |
-| REQ-001 | Slack run bootstrap pipeline | Slash command creates run, response under 2s<br>Interactive message exposes controls<br>Run persisted with correlation ID | [] | App | open |
-| REQ-002 | Order capture and preference reuse | Modal collects orders with validation<br>Last order reuse updates preference<br>Duplicate orders per user prevented | [REQ-001] | App | open |
-| REQ-003 | Run close fairness and summary | Fairness selects runner with audit data<br>Channel summary and runner DM aligned<br>Run status transitions atomically | [REQ-001, REQ-002, REQ-006] | App | open |
-| REQ-004 | Reminder scheduling and delivery | Pickup time schedules jobs via Kafka<br>Runner reminders honor channel settings<br>Reminder outcomes logged and metered | [REQ-003, REQ-007] | App | open |
-| REQ-005 | Admin channel controls and resets | `/coffee admin` gated by roles<br>Config updates persisted and audited<br>Disable and reset flows enforce state | [REQ-001, REQ-006] | App | open |
-| REQ-006 | Postgres schema and retention policies | Tables for runs orders prefs stats admins<br>Migrations enforce retention fields<br>DB access layer centralizes sessions | [] | Infra | open |
+| ID | Title | Acceptance | DependsOn | Track | Status |
+|---|---|---|---|---|---|
+| REQ-001 | Slack run bootstrap pipeline | Slash command verified with Slack signing secret before execution<br/>Run row persisted with open status pickup metadata correlation ID<br/>Interactive message posted within 2s showing controls<br/>Optional parameters validated and reflected in Slack response<br/>Kafka run_created event emitted with run identifiers |  | App | in_progress |
+| REQ-002 | Order capture and preference reuse | Order modal enforces length and non-empty validation<br/>Order upsert updates participant count in channel message<br/>Use last order pulls preference or errors gracefully<br/>Order edits or cancels prevent duplicate active orders<br/>Confirmed orders refresh channel-scoped preference record | REQ-001 | App | open |
+| REQ-003 | Run close fairness and summary | Close action restricted to initiator or admins with clear errors<br/>Fairness picks runner via runs_served_count then last_run_at<br/>Run transitions to closed with runner stats updated transactionally<br/>Channel summary lists metadata runner and participant orders<br/>Runner DM mirrors summary plus totals and reminder info | REQ-001, REQ-002, REQ-006 | App | open |
+| REQ-004 | Reminder scheduling and delivery | Runs with pickup time enqueue reminder payloads on Kafka<br/>Runner reminders sent at pickup time minus offset within tolerance<br/>Optional last call channel alerts respect channel settings<br/>Reminder outcomes logged and emitted as metrics<br/>Failed reminders retried with backoff and surfaced in errors | REQ-003, REQ-007 | App | open |
+| REQ-005 | Admin channel controls and resets | Admin command verifies Slack roles or configured admins<br/>Config UI updates reminder offset fairness window retention bounds<br/>Config changes persist and emit audit entries<br/>Disabled channels reject new runs with clear notice<br/>Data reset purges channel history and logs action summary | REQ-001, REQ-006 | App | open |
+| REQ-006 | Postgres schema and retention policies | Migrations create tables for users channels runs orders preferences stats audits<br/>Retention columns default to 90 days and accept overrides<br/>ORM models expose shared serialization helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | open |
+| REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | open |
+
+zes sessions | [] | Infra | open |
 | REQ-007 | Kafka topics and reminder worker plumbing | Topics provisioned with ACL notes<br>Producer/consumer wrappers exposed<br>Reminder job harness documented | [] | Infra | open |
 
 ### Acceptance — REQ-001
