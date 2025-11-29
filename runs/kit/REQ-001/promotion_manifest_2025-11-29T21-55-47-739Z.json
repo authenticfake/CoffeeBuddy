@@ -1,19 +1,15 @@
 {
   "req_id": "REQ-001",
   "strategy": "suffix",
-  "timestamp": "2025-11-29T21-30-15-275Z",
+  "timestamp": "2025-11-29T21-55-47-739Z",
   "src_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001",
   "dest_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy",
-  "total_actions": 25,
+  "total_actions": 24,
   "actions": [
     {
       "op": "copy",
       "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/KIT_REQ-001.md",
       "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/KIT_REQ-001.md"
-    },
-    {
-      "op": "write_suffix",
-      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/README.md.incoming-REQ-001-2025-11-29T21-30-15-275Z"
     },
     {
       "op": "copy",
@@ -27,7 +23,7 @@
     },
     {
       "op": "write_suffix",
-      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/requirements.txt.incoming-REQ-001-2025-11-29T21-30-15-275Z"
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/requirements.txt.incoming-REQ-001-2025-11-29T21-55-47-739Z"
     },
     {
       "op": "copy",

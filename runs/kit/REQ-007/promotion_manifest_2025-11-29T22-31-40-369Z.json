@@ -1,0 +1,94 @@
+{
+  "req_id": "REQ-007",
+  "strategy": "suffix",
+  "timestamp": "2025-11-29T22-31-40-369Z",
+  "src_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007",
+  "dest_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy",
+  "total_actions": 17,
+  "actions": [
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/KIT_REQ-007.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/KIT_REQ-007.md"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/README_REQ-007.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/README_REQ-007.md"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/ci/HOWTO.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/ci/HOWTO.md"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/ci/LTC.json",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/ci/LTC.json"
+    },
+    {
+      "op": "write_suffix",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/requirements.txt.incoming-REQ-007-2025-11-29T22-31-40-369Z"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/src/coffeebuddy/infra/kafka/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/src/coffeebuddy/infra/kafka/config.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka/config.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/src/coffeebuddy/infra/kafka/consumer.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka/consumer.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/src/coffeebuddy/infra/kafka/metrics.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka/metrics.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/src/coffeebuddy/infra/kafka/models.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka/models.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/src/coffeebuddy/infra/kafka/producer.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka/producer.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/src/coffeebuddy/infra/kafka/reminder_worker.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka/reminder_worker.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/src/coffeebuddy/infra/kafka/topics.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka/topics.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/test/test_consumer.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/test/test_consumer.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/test/test_producer.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/test/test_producer.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/test/test_reminder_worker.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/test/test_reminder_worker.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-007/test/test_topics.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/test/test_topics.py"
+    }
+  ]
+}

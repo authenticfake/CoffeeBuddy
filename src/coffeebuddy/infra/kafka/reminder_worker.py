@@ -3,12 +3,14 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Protocol
+from typing import Awaitable, Callable, Protocol
 
 from .metrics import REMINDER_DELAY_SECONDS, REMINDER_SEND_TOTAL
 from .models import KafkaEvent, ReminderPayload, ReminderType
 
 logger = logging.getLogger(__name__)
+
+SleepFn = Callable[[float], Awaitable[None]]
 
 
 class ReminderSender(Protocol):
@@ -27,57 +29,41 @@ class ReminderWorker:
         sender: ReminderSender,
         *,
         tolerance_seconds: int = 60,
-        clock: callable[[], datetime] | None = None,
+        clock: Callable[[], datetime] | None = None,
+        sleep: SleepFn | None = None,
     ) -> None:
         self._sender = sender
         self._tolerance_seconds = tolerance_seconds
         self._clock = clock or (lambda: datetime.now(timezone.utc))
+        self._sleep = sleep or asyncio.sleep
 
     async def process_event(self, event: KafkaEvent) -> None:
         payload = ReminderPayload.model_validate(event.payload)
-        scheduled_for = payload.scheduled_for
-        now = self._clock()
-        delay = abs((now - scheduled_for).total_seconds())
-        REMINDER_DELAY_SECONDS.observe(delay)
-        payload_message = payload.model_dump()
+        reminder_type = payload.reminder_type
+        if not self._should_dispatch(payload):
+            REMINDER_SEND_TOTAL.labels(reminder_type=reminder_type, status="skipped").inc()
+            logger.info(
+                "Skipping reminder %s (type=%s) due to channel settings.",
+                payload.reminder_id,
+                reminder_type,
+                extra={"reminder_id": payload.reminder_id, "reminder_type": reminder_type},
+            )
+            return
 
-        logger.debug(
-            "Processing reminder event",
-            extra={
-                "reminder_id": payload.reminder_id,
-                "reminder_type": payload.reminder_type,
-                "delay_seconds": delay,
-            },
+        await self._wait_until(payload.scheduled_for, payload)
+
+        send_fn = (
+            self._sender.send_runner_reminder
+            if reminder_type == "runner"
+            else self._sender.send_last_call_reminder
         )
 
-        if payload.reminder_type == "runner":
-            if not payload.channel_reminders_enabled:
-                REMINDER_SEND_TOTAL.labels(reminder_type="runner", status="skipped_disabled").inc()
-                logger.info(
-                    "Runner reminder skipped; channel disabled reminders.",
-                    extra=payload_message,
-                )
-                return
-            await self._dispatch(self._sender.send_runner_reminder, payload, ReminderType("runner"))
-        else:
-            if not payload.last_call_enabled:
-                REMINDER_SEND_TOTAL.labels(reminder_type="last_call", status="skipped_disabled").inc()
-                logger.info(
-                    "Last call reminder skipped; feature disabled.",
-                    extra=payload_message,
-                )
-                return
-            await self._dispatch(self._sender.send_last_call_reminder, payload, ReminderType("last_call"))
-
-    async def _dispatch(
-        self,
-        action: callable[[ReminderPayload], asyncio.Future | None | asyncio.Task],
-        payload: ReminderPayload,
-        reminder_type: ReminderType,
-    ) -> None:
         try:
-            await action(payload)
+            await send_fn(payload)
             REMINDER_SEND_TOTAL.labels(reminder_type=reminder_type, status="sent").inc()
+            REMINDER_DELAY_SECONDS.observe(
+                abs((self._clock() - payload.scheduled_for).total_seconds())
+            )
             logger.info(
                 "Reminder dispatched",
                 extra={"reminder_id": payload.reminder_id, "reminder_type": reminder_type},
@@ -89,3 +75,31 @@ class ReminderWorker:
                 extra={"reminder_id": payload.reminder_id, "reminder_type": reminder_type},
             )
             raise
+
+    def _should_dispatch(self, payload: ReminderPayload) -> bool:
+        if not payload.channel_reminders_enabled:
+            return False
+        if payload.reminder_type == "runner":
+            return payload.runner_user_id is not None
+        if payload.reminder_type == "last_call":
+            return payload.last_call_enabled
+        return False
+
+    async def _wait_until(self, scheduled_for: datetime, payload: ReminderPayload) -> None:
+        target = (
+            scheduled_for
+            if scheduled_for.tzinfo
+            else scheduled_for.replace(tzinfo=timezone.utc)
+        )
+        while True:
+            now = self._clock()
+            delay = (target - now).total_seconds()
+            if delay <= 0:
+                if abs(delay) > self._tolerance_seconds:
+                    logger.warning(
+                        "Reminder %s is late by %.2fs.",
+                        payload.reminder_id,
+                        abs(delay),
+                    )
+                return
+            await self._sleep(delay if delay <= self._tolerance_seconds else delay - self._tolerance_seconds)

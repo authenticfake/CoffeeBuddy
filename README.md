@@ -1,225 +1,102 @@
-# CLike — Harper / Vibe Coding Playground
+# CoffeeBuddy
 
-> ⚠️ **Draft notice**  
-> This README is an **auto-generated, provisional overview**.  
-> The final, production-ready documentation will be regenerated and refined during the **Harper `/finalize` phase**.
+![Python](https://img.shields.io/badge/python-3.12-blue.svg) ![FastAPI](https://img.shields.io/badge/FastAPI-ready-green.svg) ![Docker](https://img.shields.io/badge/docker-compose-blue.svg) ![Kubernetes](https://img.shields.io/badge/k8s-ready-326ce5.svg) ![CLike](https://img.shields.io/badge/built_with-CLike-black.svg)
 
-![CLike logo](./images/clike/clike_128x128.png)
+## Overview
+CoffeeBuddy is an on-prem Slack bot that streamlines office coffee runs: start a run with `/coffee`, capture orders (including “reuse my usual”), assign a fair runner, and send summaries plus reminders. The service is a FastAPI app running on Kubernetes, backed by Postgres for state, Kafka for events/reminders, Vault for secrets, and exposed via Kong.
 
-CLike is a **Harper-style, AI-native development environment**.  
-You work inside VS Code, talk to one or more LLMs, and drive your project through a clear sequence of phases instead of ad-hoc prompts.
+## Architecture
+```
+Slack → Kong → CoffeeBuddy (FastAPI + Slack SDK)
+  ├─ Postgres (runs, orders, preferences, configs)
+  ├─ Kafka (run + reminder topics)
+  ├─ Vault (Slack tokens, DB creds)
+  ├─ Ory (OIDC auth to internal services)
+  └─ Prometheus scrape (/metrics)
+```
+Slices:
+- `coffeebuddy.api.slack_runs`: slash commands, interactive payloads.
+- `coffeebuddy.core.orders/runs`: persistence + fairness logic.
+- `coffeebuddy.jobs.reminders`: Kafka reminder worker.
+- `coffeebuddy.api.admin`: channel enable/disable, config, data reset.
+- `coffeebuddy.infra.db/kafka`: schema, migrations, topic definitions.
 
-The goal is simple: **turn conversations into production-grade software**, with traceability, tests, and repeatable workflows.
+## Repository Layout
+- `src/coffeebuddy/api/`: FastAPI routers for Slack and admin flows.
+- `src/coffeebuddy/core/`: business services (orders, runs, fairness, audit).
+- `src/coffeebuddy/jobs/`: Kafka reminder consumer & scheduler.
+- `src/coffeebuddy/infra/`: DB session factory, schema loader, Kafka utilities.
+- `src/storage/spec/` + `src/storage/sql/`: canonical schema + Alembic migrations.
+- `tests/`: pytest suites per REQ (unit + integration).
+- `docker/` + `compose.yaml`: local runtime wiring (app, Postgres, Kafka).
+- `docs/`: Harper runbooks and API collections.
 
----
+## Quickstart
 
-## 1. Harper Projects in a Nutshell
+### CLI (dev)
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e .[dev]
+export SLACK_SIGNING_SECRET=...
+export SLACK_BOT_TOKEN=...
+export DATABASE_URL=postgresql+psycopg://...
+export KAFKA_BOOTSTRAP=localhost:9092
+alembic upgrade head
+uvicorn coffeebuddy.main:app --host 0.0.0.0 --port 8080 --reload
+```
 
-Harper is not “just prompting”.  
-It is a **process** for building software with AI as a first-class collaborator:
+### Docker
+```bash
+docker compose up --build
+# App: http://localhost:8080 (Kong mock in front if configured)
+# Check health:
+curl -f http://localhost:8080/health/ready
+```
+Teardown with `docker compose down -v`.
 
-> **IDEA → SPEC → PLAN → KIT → EVAL → GATE → FINALIZE**
+## Configuration
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `SLACK_SIGNING_SECRET` | ✅ | — | Verifies Slack payloads. Loaded from Vault in prod. |
+| `SLACK_BOT_TOKEN` | ✅ | — | Bot token for posting messages/DMs. |
+| `DATABASE_URL` | ✅ | — | SQLAlchemy DSN for Postgres. |
+| `KAFKA_BOOTSTRAP` | ✅ | — | Kafka bootstrap servers. |
+| `KAFKA_SASL_JAAS` | ⚪️ | None | SASL config when using secured clusters. |
+| `VAULT_ADDR` / `VAULT_TOKEN` | ⚪️ | platform | Secret retrieval when not using sidecars. |
+| `PROMETHEUS_MULTIPROC_DIR` | ⚪️ | None | Enables multiprocess metrics if Gunicorn. |
+| `RUN_FAIRNESS_WINDOW` | ⚪️ | 5 | Fallback channel fairness window if not configured. |
+| `REMINDER_OFFSET_DEFAULT` | ⚪️ | 5 | Fallback reminder minutes before pickup. |
+| `DISABLE_REMINDERS` | ⚪️ | false | Global kill switch for reminder worker. |
 
-Each phase produces concrete artifacts in your repo, so humans and models can collaborate reliably over time.
+Services & Ports (dev defaults):
+- FastAPI app: `:8080`
+- Postgres (compose): `:5432`
+- Kafka (compose): `:9092`
 
-### 1.1 Phases & Artifacts
+## Quick Ops
+- Health: `/health/live`, `/health/ready`
+- Metrics: `/metrics` (Prometheus format)
+- Slack ingress: `/slack/commands`, `/slack/interactions` via Kong route
+- Reminder worker entrypoint: `python -m coffeebuddy.jobs.reminders.worker`
 
-**IDEA — Frame the problem**
+## Testing & Quality
+- Unit/integration: `pytest -q`
+- Style: `ruff check .`
+- Types: `mypy src`
+- Coverage target: ≥80% per TECH_CONSTRAINTS.
+- CI ensures migrations idempotent and Kafka topic configs render.
 
-- You describe the **product vision**, target users and constraints.
-- Harper turns that into a structured `docs/harper/IDEA.md`.
-- The file becomes the narrative backbone: why the project exists, what “success” means, what is explicitly out of scope.
+## Acceptance Criteria
+- Slash commands acknowledge within 2 s and persist runs with correlation IDs.
+- Orders modal enforces validation, updates participant counts, and preserves preferences.
+- Closing a run assigns runner per fairness rules, posts channel summary, and DMs runner.
+- Reminder jobs trigger at `pickup_time - offset` ±1 minute unless disabled.
+- Admin disable/reset commands block new runs and purge historical data for the channel.
 
-**SPEC — Turn vision into requirements**
+## Made With
+Built with CLike Harper pipeline (IDEA→SPEC→PLAN→KIT), FastAPI, SQLAlchemy, Kafka Python clients, and pytest. See `SPEC.md`/`PLAN.md` for traceability.
 
-- Harper reads the IDEA and asks: _“What must be true for this to work?”_
-- It produces `docs/harper/SPEC.md` with:
-  - Named capabilities and user journeys.
-  - Observable, falsifiable requirements.
-  - Early notes on technical constraints and risks.
-
-**PLAN — Design the execution path**
-
-- From SPEC, Harper generates:
-  - `docs/harper/PLAN.md`: human-readable roadmap with **REQ-IDs** (REQ-001, REQ-002, …), dependencies, and acceptance hints.
-  - `docs/harper/plan.json`: machine-readable structure for automation (lanes, gate policies, test profiles).
-  - `docs/harper/lane-guides/*.md`: lane playbooks (e.g. `python`, `sql`, `kafka`, `infra`) describing tools, commands, and quality bars.
-- PLAN defines **where code will live** (namespaces, modules, folders) so KIT can stay consistent.
-
-**KIT — Implement one REQ at a time**
-
-- Each `/kit` run targets one or more REQs and emits:
-  - Source files under `runs/kit/<REQ-ID>/src/…`
-  - Tests under `runs/kit/<REQ-ID>/test/…`
-  - CI contracts `runs/kit/<REQ-ID>/ci/LTC.json`
-  - How-to docs `runs/kit/<REQ-ID>/ci/HOWTO.md`
-- The focus is **composition-first design**: small units, clear seams, and reuse of existing modules.
-
-**EVAL — Run tests & checks**
-
-- EVAL executes the commands defined in the LTC:
-  - Tests, linters, type checkers, coverage, security scans…
-- It produces machine-readable summaries under `runs/eval/<REQ-ID>/…` to feed back into the loop.
-
-**GATE — Decide if a REQ passes**
-
-- GATE applies the gate policy for each REQ:
-  - “Do tests pass?”, “Is coverage above threshold?”, “Are critical issues acceptable?”
-- If the gate passes, Harper can integrate changes back into the main branch following your Git policy.
-
-**FINALIZE — Close the loop**
-
-- Once a slice or project is ready, `/finalize`:
-  - Consolidates docs into a clean `README.md` + “How to run” guides.
-  - Captures a **sanity checklist** and “next ideas”.
-  - Prepares release notes and a PR body.
-- The README you are reading now will eventually be replaced by a **stable, curated version** at this stage.
-
-### 1.2 How a Harper Project is Built (Day-to-day Flow)
-
-A typical Harper-style project evolves like this:
-
-1. **Bootstrap**
-   - Run `/init` to create the basic structure.
-   - Capture the initial IDEA with `/idea`.
-2. **Shape the work**
-   - Refine requirements via `/spec`.
-   - Generate and iterate on `/plan` until REQs and lanes feel right.
-3. **Implement incrementally**
-   - Use `/kit` to implement a single REQ (or a small batch).
-   - Reuse code and patterns from previous KIT runs via RAG context.
-4. **Evaluate and gate**
-   - `/eval` runs the test/contracts for that REQ.
-   - `/gate` decides if the work is ready to be merged or needs another KIT loop.
-5. **Finalize**
-   - When a milestone is reached, `/finalize` consolidates documentation and release artifacts.
-
-Harper’s superpower is **memory through files**: every phase leaves a trace in the repo, so both humans and models can reason over an evolving, shared source of truth.
-
----
-
-## 2. The CLike VS Code Extension
-
-The CLike VS Code extension is your **Harper cockpit**.  
-It connects chat, models, files, and Git into a single, opinionated developer experience.
-
-### 2.1 What the Extension Does
-
-- **Multi-model chat panel**
-  - Talk to different models (OpenAI GPT-5.x / Codex, Anthropic, local models… depending on your setup).
-  - Switch models per conversation or per Harper command.
-
-- **Harper command layer**
-  - Run `/idea`, `/spec`, `/plan`, `/kit`, `/eval`, `/gate`, `/finalize` directly from the chat.
-  - Each command routes through the gateway/orchestrator and writes the appropriate files under `docs/harper/` or `runs/`.
-
-- **RAG-aware conversations**
-  - The extension can attach project files as context (SPEC, PLAN, previous KIT runs, lane guides).
-  - Harper uses this RAG context to compose new code that matches your existing architecture.
-
-- **Code patch workflow**
-  - Models can propose patches as “virtual files”.
-  - The extension shows diffs and lets you apply or discard them explicitly.
-  - Git integration (if configured) can commit and open PRs from gated changes.
-
-- **Theming & UX**
-  - Custom chat themes and layout tuned for long-form dev conversations.
-  - Clear separation between:
-    - freeform chat,
-    - Harper system phases,
-    - raw model logs (visibility when you need to debug the pipeline).
-
----
-
-## 3. Capabilities at a Glance
-
-CLike is not just “chat in a panel”. It provides a **stack of capabilities** that you can combine as you grow the project.
-
-### 3.1 RAG & Project-aware Reasoning
-
-- **Repository-grounded answers**  
-  Harper can read SPEC, PLAN, lane-guides, previous KIT outputs, and selected source files as **retrieval-augmented context**.  
-- **REQ-aware RAG**  
-  When running `/kit REQ-00X`, CLike surfaces snippets from:
-  - `runs/kit/<REQ-ID>/src` and `test` from past iterations,
-  - dependencies declared in `plan.json`,
-  - shared modules or patterns (e.g. domain models, DTOs, error handling).
-- **Stable architecture**  
-  Instead of constantly “re-explaining” the project, you point Harper to files. RAG becomes your **long-term memory**, not a one-off prompt hack.
-
-### 3.2 Attachments & Context Control
-
-- **File attachments from the chat**  
-  Drag-and-drop or select files (specs, diagrams, logs, JSON payloads, legacy code) and attach them to a conversation or a Harper command.
-- **Scoped context**  
-  You decide what the model sees:
-  - single file for a focused refactor,
-  - curated bundle for a complex KIT run,
-  - minimal context for quick Q&A.
-- **Repeatable debugging**  
-  Attach logs or failing test output, ask Harper to propose fixes, and keep that context in the thread for future iterations.
-
-### 3.3 Multi-model & Single-model Modes
-
-- **Multi-model orchestration**
-  - Use different models for different jobs:
-    - GPT-5.x for high-level reasoning and planning,
-    - Codex-style models for code-heavy KIT runs,
-    - lighter models for quick edits or docs.
-  - Route Harper commands to specific models (`/kit` on Codex, `/plan` on GPT-5.x, etc.).
-- **Single-model focus**
-  - Pin a model for a whole session when you want a consistent “voice” and behavior.
-  - Helpful for long investigations, refactors, or when you are tuning costs.
-
-### 3.4 Embeddings & Semantic Views
-
-- **Semantic indexing of project files**  
-  (When configured) CLike can build embeddings for key documents and code slices, enabling:
-  - smarter RAG retrieval,
-  - semantic search across SPEC, PLAN, KIT runs, and code.
-- **Embedding-aware prompts**  
-  Instead of passing raw file blobs, CLike can hydrate prompts from the most relevant chunks, keeping context windows efficient and focused.
-
-### 3.5 Freeform Chat & “G-free” Mode
-
-- **Harper-aware chat**  
-  Normal conversations still benefit from Harper context: you can ask “why is REQ-003 blocked?” or “remind me how the Kafka lane works”.
-- **G-free / Free chat mode**
-  - Talk to models **without** Harper process envelopes when you just need:
-    - brainstorming,
-    - generic coding help,
-    - quick lookups or explanations.
-  - Perfect for exploratory phases, sketches, or when you don’t want to persist artifacts yet.
-
-### 3.6 Coding Assistance & Refactors
-
-- **Structured code generation**
-  - Models emit **file-shaped outputs** (`file:/path.ext` + contents) that map directly into your repo or `runs/kit` structure.
-  - This is ideal for Harper KIT runs but can also be used in ad-hoc coding tasks.
-- **Refactor loops**
-  - Ask for refactors in-place: CLike can compare new code with existing files and show diffs.
-  - Combine RAG (existing modules) with model reasoning to evolve the design incrementally.
-- **Test-first nudges**
-  - KIT phases and lane-guides push towards tests, lint, and types.
-  - Even in “plain chat”, you can ask the assistant to generate tests and CLike will keep them close to the relevant code.
-
----
-
-## 4. Status: Work in Progress
-
-The CLike extension and this README are part of an **ongoing Harper experiment**:
-
-- APIs, commands, and UI may change as we refine the workflow.
-- Some models (especially reasoning-only ones like GPT-5.1-Codex) are used in **experimental modes** and may not behave identically to standard chat models.
-- Quality gates, lane-guides, and KIT/EVAL integration are being tuned to better match real-world enterprise constraints (air-gapped environments, on-prem infra, etc.).
-
-During the **`/finalize` phase**, this README will be:
-
-- reconciled with the current project state,
-- aligned with actual lanes, commands, and REQs,
-- promoted from “draft narrative” to **trusted entry point** for new developers.
-
----
-
-If you are reading this inside VS Code after running `/init`, you are already in the Harper loop.  
-From here, your next step is to **capture the IDEA** and let CLike help you turn it into a living, testable system.
+## Assumptions
+- Slack app configured with required scopes and channel installation.
+- Kong/Ory/Vault endpoints reachable inside target cluster.
+- Time sync (NTP) within 1 minute to honor reminder tolerances.

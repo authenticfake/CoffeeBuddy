@@ -20,3 +20,26 @@
 {"ts":1764449015704,"mode":"harper","role":"system","content":"✔ KIT REQ-007 done — [echo] manual::gpt-5.1-codex :: KIT generation • [files] 17 • [text] 31 chars","model":"gpt-5.1-codex","attachments":[]}
 {"ts":1764449731300,"mode":"harper","role":"user","content":"▶ KIT REQ-004 | mode=harper model=gpt-5.1-codex profile=— core=[\"SPEC.md\",\"PLAN.md\",\"TECH_CONSTRAINTS.yaml\"]","model":"gpt-5.1-codex","attachments":[]}
 {"ts":1764449889212,"mode":"harper","role":"system","content":"✔ KIT REQ-004 done — [echo] manual::gpt-5.1-codex :: KIT generation • [files] 10 • [text] 31 chars","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764451088801,"mode":"harper","role":"user","content":"▶ GATE REQ-006 | mode=harper model=gpt-5.1-codex","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764451104545,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-006/ci/LTC.json: PASS","model":"gpt-5.1-codex"}
+{"ts":1764451401174,"mode":"harper","role":"user","content":"▶ GATE REQ-001 | mode=harper model=gpt-5.1-codex","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764451810675,"mode":"harper","role":"user","content":"▶ GATE REQ-001 | mode=harper model=gpt-5.1-codex","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764451934647,"mode":"harper","role":"user","content":"▶ GATE REQ-001 | mode=harper model=gpt-5.1-codex","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764451957581,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-001/ci/LTC.json: PASS","model":"gpt-5.1-codex"}
+{"ts":1764452130152,"mode":"harper","role":"user","content":"▶ GATE REQ-001 | mode=harper model=gpt-5.1-codex","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764453162758,"mode":"harper","role":"user","content":"▶ GATE REQ-006 | mode=harper model=auto","model":"auto","attachments":[]}
+{"ts":1764453175449,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-006/ci/LTC.json: PASS","model":"auto"}
+{"ts":1764453338294,"mode":"harper","role":"user","content":"▶ GATE REQ-001 | mode=harper model=auto","model":"auto","attachments":[]}
+{"ts":1764453354655,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-001/ci/LTC.json: PASS","model":"auto"}
+{"ts":1764454601755,"mode":"harper","role":"user","content":"▶ GATE REQ-002 | mode=harper model=auto","model":"auto","attachments":[]}
+{"ts":1764454612101,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-002/ci/LTC.json: PASS","model":"auto"}
+{"ts":1764455171607,"mode":"harper","role":"user","content":"▶ GATE REQ-003 | mode=harper model=auto","model":"auto","attachments":[]}
+{"ts":1764455181317,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-003/ci/LTC.json: PASS","model":"auto"}
+{"ts":1764455443351,"mode":"harper","role":"user","content":"▶ GATE REQ-005 | mode=harper model=auto","model":"auto","attachments":[]}
+{"ts":1764455454291,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-005/ci/LTC.json: PASS","model":"auto"}
+{"ts":1764455497776,"mode":"harper","role":"user","content":"▶ GATE REQ-007 | mode=harper model=auto","model":"auto","attachments":[]}
+{"ts":1764455506639,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-007/ci/LTC.json: PASS","model":"auto"}
+{"ts":1764455652570,"mode":"harper","role":"user","content":"▶ GATE REQ-004 | mode=harper model=auto","model":"auto","attachments":[]}
+{"ts":1764455662341,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-004/ci/LTC.json: PASS","model":"auto"}
+{"ts":1764456781185,"mode":"harper","role":"user","content":"▶ FINALIZE  | mode=harper model=gpt-5.1-codex profile=— core=[\"SPEC.md\",\"PLAN.md\",\"TECH_CONSTRAINTS.yaml\"]","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764456824553,"mode":"harper","role":"system","content":"✔ FINALIZE  done — [echo] manual::gpt-5.1-codex :: FINALIZE generation • [files] 7 • [text] 41 chars","model":"gpt-5.1-codex","attachments":[]}
