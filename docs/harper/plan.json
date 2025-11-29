@@ -1,0 +1,143 @@
+{
+  "snapshot": {
+    "total": 7,
+    "open": 0,
+    "in_progress": 0,
+    "done": 7,
+    "deferred": 0,
+    "progressPct": 100
+  },
+  "reqs": [
+    {
+      "id": "REQ-001",
+      "title": "Slack run bootstrap pipeline",
+      "acceptance": [
+        "Slash command verified with Slack signing secret before execution",
+        "Run row persisted with open status pickup metadata correlation ID",
+        "Interactive message posted within 2s showing controls",
+        "Optional parameters validated and reflected in Slack response",
+        "Kafka run_created event emitted with run identifiers"
+      ],
+      "dependsOn": [],
+      "track": "App",
+      "status": "done",
+      "lane": "python",
+      "test_profile": "pytest-unit-fastapi",
+      "gate_policy_ref": "docs/harper/lane-guides/python.md"
+    },
+    {
+      "id": "REQ-002",
+      "title": "Order capture and preference reuse",
+      "acceptance": [
+        "Order modal enforces length and non-empty validation",
+        "Order upsert updates participant count in channel message",
+        "Use last order pulls preference or errors gracefully",
+        "Order edits or cancels prevent duplicate active orders",
+        "Confirmed orders refresh channel-scoped preference record"
+      ],
+      "dependsOn": [
+        "REQ-001"
+      ],
+      "track": "App",
+      "status": "done",
+      "lane": "python",
+      "test_profile": "pytest-orders",
+      "gate_policy_ref": "docs/harper/lane-guides/python.md"
+    },
+    {
+      "id": "REQ-003",
+      "title": "Run close fairness and summary",
+      "acceptance": [
+        "Close action restricted to initiator or admins with clear errors",
+        "Fairness picks runner via runs_served_count then last_run_at",
+        "Run transitions to closed with runner stats updated transactionally",
+        "Channel summary lists metadata runner and participant orders",
+        "Runner DM mirrors summary plus totals and reminder info"
+      ],
+      "dependsOn": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-006"
+      ],
+      "track": "App",
+      "status": "done",
+      "lane": "python",
+      "test_profile": "pytest-fairness-e2e",
+      "gate_policy_ref": "docs/harper/lane-guides/python.md"
+    },
+    {
+      "id": "REQ-004",
+      "title": "Reminder scheduling and delivery",
+      "acceptance": [
+        "Runs with pickup time enqueue reminder payloads on Kafka",
+        "Runner reminders sent at pickup time minus offset within tolerance",
+        "Optional last call channel alerts respect channel settings",
+        "Reminder outcomes logged and emitted as metrics",
+        "Failed reminders retried with backoff and surfaced in errors"
+      ],
+      "dependsOn": [
+        "REQ-003",
+        "REQ-007"
+      ],
+      "track": "App",
+      "status": "done",
+      "lane": "python",
+      "test_profile": "pytest-reminders-kafka",
+      "gate_policy_ref": "docs/harper/lane-guides/python.md"
+    },
+    {
+      "id": "REQ-005",
+      "title": "Admin channel controls and resets",
+      "acceptance": [
+        "Admin command verifies Slack roles or configured admins",
+        "Config UI updates reminder offset fairness window retention bounds",
+        "Config changes persist and emit audit entries",
+        "Disabled channels reject new runs with clear notice",
+        "Data reset purges channel history and logs action summary"
+      ],
+      "dependsOn": [
+        "REQ-001",
+        "REQ-006"
+      ],
+      "track": "App",
+      "status": "done",
+      "lane": "python",
+      "test_profile": "pytest-admin",
+      "gate_policy_ref": "docs/harper/lane-guides/python.md"
+    },
+    {
+      "id": "REQ-006",
+      "title": "Postgres schema and retention policies",
+      "acceptance": [
+        "Migrations create tables for users channels runs orders preferences stats audits",
+        "Retention columns default to 90 days and accept overrides",
+        "ORM models expose shared serialization helpers",
+        "Vault-sourced DB credentials power resilient session factory",
+        "Migration command documented and idempotent for CI"
+      ],
+      "dependsOn": [],
+      "track": "Infra",
+      "status": "done",
+      "lane": "sql",
+      "test_profile": "pytest-alembic",
+      "gate_policy_ref": "docs/harper/lane-guides/sql.md"
+    },
+    {
+      "id": "REQ-007",
+      "title": "Kafka topics and reminder worker plumbing",
+      "acceptance": [
+        "Kafka topics defined with partitions replication and retention notes",
+        "Producer consumer utilities enforce payload schemas and IDs",
+        "Reminder worker harness documented with graceful shutdown",
+        "Topic ACL needs captured for platform coordination",
+        "Kafka connectivity metrics exported for Prometheus"
+      ],
+      "dependsOn": [],
+      "track": "Infra",
+      "status": "done",
+      "lane": "kafka",
+      "test_profile": "pytest-kafka-harness",
+      "gate_policy_ref": "docs/harper/lane-guides/kafka.md"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "req_id": "REQ-001",
+  "lane": "app",
+  "tools": {
+    "tests": true,
+    "lint": false,
+    "types": false,
+    "security": false,
+    "build": false
+  },
+  "env": {
+    "PYTHONPATH": "."
+  },
+  "cases": [
+    {
+      "name": "tests",
+      "run": "pytest -q runs/kit/REQ-001/test",
+      "cwd": ".",
+      "pip-file": "runs/kit/REQ-001/requirements.txt",
+      "expect": 0
+    }
+  ],
+  "commands": {
+    "tests": ["pytest -q runs/kit/REQ-001/test"]
+  },
+  "reports": [],
+  "normalize": {},
+  "gate_policy": {
+    "tests_pass": true
+  },
+  "constraints_applied": [
+    "python@3.12",
+    "coverage_min=80 (global profile target)"
+  ]
+}

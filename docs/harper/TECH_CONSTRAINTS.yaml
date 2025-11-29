@@ -1,7 +1,42 @@
-version: 1.0.0
-profiles: []
-capabilities: []
-# NOTE:
-# - Keep this file as the canonical human-edited source of Technology Constraints.
-# - JSON mirror (TECH_CONSTRAINTS.json) must stay in sync.
-# - The lock file (TECH_CONSTRAINTS.lock.json) is for orchestrator/gateway to maintain.
+tech_constraints:
+  version: 1.0.0
+  profiles:
+    - name: app-core
+      runtime: python@3.12
+      platform: kubernetes
+      api:
+        - rest
+        - slack.events
+      storage:
+        - postgres
+      messaging:
+        - kafka
+      auth:
+        - oidc
+      observability:
+        - prometheus
+    - name: ai-rag
+      runtime: python@3.12
+      platform: kubernetes
+      api:
+        - internal.rag
+      storage:
+        - qdrant
+      messaging: []
+      auth:
+        - service-token
+      observability:
+        - opentelemetry
+  capabilities:
+    - type: ai.generation
+      mode: chat
+      params:
+        max_tokens: 9500
+    - type: ai.rag.index
+      formats:
+        docx: true
+        pdf: true
+        xlsx: true
+        pptx: true
+    - type: ci.quality
+      coverage_min: 80

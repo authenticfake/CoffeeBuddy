@@ -1,0 +1,103 @@
+version: 1.0.0
+engine: postgres
+metadata:
+  name: coffeebuddy_core
+  owner: coffeebuddy-platform
+  description: Canonical schema for CoffeeBuddy persistence across users, channels, runs, orders, preferences, runner stats and admin actions.
+entities:
+  - name: users
+    pk: id
+    columns:
+      - { name: id, type: uuid, nullable: false, default: uuid_generate_v4() }
+      - { name: slack_user_id, type: varchar(32), nullable: false, unique: true }
+      - { name: display_name, type: varchar(120), nullable: false }
+      - { name: is_active, type: boolean, nullable: false, default: true }
+      - { name: created_at, type: timestamptz, nullable: false, default: now() }
+      - { name: updated_at, type: timestamptz, nullable: false, default: now() }
+  - name: channels
+    pk: id
+    columns:
+      - { name: id, type: uuid, nullable: false, default: uuid_generate_v4() }
+      - { name: slack_channel_id, type: varchar(32), nullable: false, unique: true }
+      - { name: name, type: varchar(120), nullable: false }
+      - { name: enabled, type: boolean, nullable: false, default: true }
+      - { name: reminder_offset_minutes, type: integer, nullable: false, default: 5, check: "reminder_offset_minutes BETWEEN 1 AND 60" }
+      - { name: fairness_window_runs, type: integer, nullable: false, default: 5, check: "fairness_window_runs BETWEEN 1 AND 50" }
+      - { name: data_retention_days, type: integer, nullable: false, default: 90, check: "data_retention_days BETWEEN 30 AND 365" }
+      - { name: reminders_enabled, type: boolean, nullable: false, default: true }
+      - { name: last_call_enabled, type: boolean, nullable: false, default: true }
+      - { name: last_call_lead_minutes, type: integer, nullable: true }
+      - { name: last_reset_at, type: timestamptz, nullable: true }
+      - { name: created_at, type: timestamptz, nullable: false, default: now() }
+      - { name: updated_at, type: timestamptz, nullable: false, default: now() }
+  - name: runs
+    pk: id
+    columns:
+      - { name: id, type: uuid, nullable: false, default: uuid_generate_v4() }
+      - { name: channel_id, type: uuid, nullable: false, fk: channels.id }
+      - { name: initiator_user_id, type: uuid, nullable: false, fk: users.id }
+      - { name: runner_user_id, type: uuid, nullable: true, fk: users.id }
+      - { name: status, type: varchar(16), nullable: false, default: open, check: "status IN ('open','closed','canceled','failed')" }
+      - { name: pickup_time, type: timestamptz, nullable: true }
+      - { name: pickup_note, type: text, nullable: true }
+      - { name: started_at, type: timestamptz, nullable: false, default: now() }
+      - { name: closed_at, type: timestamptz, nullable: true }
+      - { name: failure_reason, type: text, nullable: true }
+      - { name: correlation_id, type: varchar(64), nullable: false }
+      - { name: created_at, type: timestamptz, nullable: false, default: now() }
+      - { name: updated_at, type: timestamptz, nullable: false, default: now() }
+    indexes:
+      - columns: [channel_id, status]
+      - columns: [runner_user_id, started_at]
+  - name: orders
+    pk: id
+    columns:
+      - { name: id, type: uuid, nullable: false, default: uuid_generate_v4() }
+      - { name: run_id, type: uuid, nullable: false, fk: runs.id }
+      - { name: user_id, type: uuid, nullable: false, fk: users.id }
+      - { name: order_text, type: text, nullable: false }
+      - { name: is_final, type: boolean, nullable: false, default: false }
+      - { name: provenance, type: varchar(32), nullable: false, default: manual }
+      - { name: created_at, type: timestamptz, nullable: false, default: now() }
+      - { name: updated_at, type: timestamptz, nullable: false, default: now() }
+      - { name: canceled_at, type: timestamptz, nullable: true }
+    constraints:
+      - unique: [run_id, user_id]
+    indexes:
+      - columns: [run_id]
+      - columns: [user_id]
+  - name: user_preferences
+    pk: id
+    columns:
+      - { name: id, type: uuid, nullable: false, default: uuid_generate_v4() }
+      - { name: user_id, type: uuid, nullable: false, fk: users.id }
+      - { name: channel_id, type: uuid, nullable: false, fk: channels.id }
+      - { name: last_order_text, type: text, nullable: false }
+      - { name: last_used_at, type: timestamptz, nullable: true }
+      - { name: created_at, type: timestamptz, nullable: false, default: now() }
+      - { name: updated_at, type: timestamptz, nullable: false, default: now() }
+    constraints:
+      - unique: [user_id, channel_id]
+  - name: runner_stats
+    pk: id
+    columns:
+      - { name: id, type: uuid, nullable: false, default: uuid_generate_v4() }
+      - { name: user_id, type: uuid, nullable: false, fk: users.id }
+      - { name: channel_id, type: uuid, nullable: false, fk: channels.id }
+      - { name: runs_served_count, type: integer, nullable: false, default: 0 }
+      - { name: last_run_at, type: timestamptz, nullable: true }
+      - { name: created_at, type: timestamptz, nullable: false, default: now() }
+      - { name: updated_at, type: timestamptz, nullable: false, default: now() }
+    constraints:
+      - unique: [user_id, channel_id]
+  - name: channel_admin_actions
+    pk: id
+    columns:
+      - { name: id, type: uuid, nullable: false, default: uuid_generate_v4() }
+      - { name: channel_id, type: uuid, nullable: false, fk: channels.id }
+      - { name: admin_user_id, type: uuid, nullable: false, fk: users.id }
+      - { name: action_type, type: varchar(32), nullable: false, check: "action_type IN ('enable','disable','update_config','data_reset')" }
+      - { name: action_details, type: jsonb, nullable: false, default: '{}'::jsonb }
+      - { name: created_at, type: timestamptz, nullable: false, default: now() }
+    indexes:
+      - columns: [channel_id, created_at desc]

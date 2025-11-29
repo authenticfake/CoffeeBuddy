@@ -1,0 +1,74 @@
+{
+  "req_id": "REQ-002",
+  "strategy": "suffix",
+  "timestamp": "2025-11-29T22-16-45-315Z",
+  "src_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002",
+  "dest_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy",
+  "total_actions": 13,
+  "actions": [
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/KIT_REQ-002.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/KIT_REQ-002.md"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/README_REQ-002.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/README_REQ-002.md"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/ci/HOWTO.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/ci/HOWTO.md"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/ci/LTC.json",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/ci/LTC.json"
+    },
+    {
+      "op": "write_suffix",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/requirements.txt.incoming-REQ-002-2025-11-29T22-16-45-315Z"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/src/coffeebuddy/core/orders/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/core/orders/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/src/coffeebuddy/core/orders/exceptions.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/core/orders/exceptions.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/src/coffeebuddy/core/orders/models.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/core/orders/models.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/src/coffeebuddy/core/orders/repository.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/core/orders/repository.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/src/coffeebuddy/core/orders/service.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/core/orders/service.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/src/coffeebuddy/services/preferences/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/services/preferences/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/src/coffeebuddy/services/preferences/service.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/services/preferences/service.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-002/test/test_order_service.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/test/test_order_service.py"
+    }
+  ]
+}
