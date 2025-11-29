@@ -37,6 +37,9 @@
 | REQ-006 | Postgres schema and retention policies | Migrations create tables for users channels runs orders preferences stats audits<br/>Retention columns default to 90 days and accept overrides<br/>ORM models expose shared serialization helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | in_progress |
 | REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | open |
 
+zation helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | in_progress |
+| REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | open |
+
 zation helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | open |
 | REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | open |
 

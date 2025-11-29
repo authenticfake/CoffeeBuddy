@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "req_id": "REQ-002",
+  "lane": "app",
+  "tools": {
+    "tests": "pytest",
+    "lint": "none",
+    "types": "none",
+    "security": "none",
+    "build": "none"
+  },
+  "commands": {
+    "tests": "pytest -q runs/kit/REQ-002/test"
+  },
+  "cases": [
+    {
+      "name": "tests",
+      "run": "pytest -q runs/kit/REQ-002/test",
+      "cwd": ".",
+      "pip-file": "runs/kit/REQ-002/requirements.txt",
+      "expect": 0
+    }
+  ],
+  "reports": [],
+  "env": {
+    "PYTHONPATH": "."
+  },
+  "normalize": {
+    "tests": "pytest"
+  },
+  "gate_policy": {
+    "tests_pass": true,
+    "coverage_min": 0.8,
+    "security": {
+      "bandit_high": 0
+    }
+  },
+  "external_runner": null,
+  "constraints_applied": [
+    "composition-first",
+    "python@3.12",
+    "on-prem only"
+  ]
+}
