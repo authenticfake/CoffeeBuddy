@@ -1,0 +1,133 @@
+{
+  "req_id": "REQ-001",
+  "strategy": "suffix",
+  "timestamp": "2025-11-29T21-30-15-275Z",
+  "src_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001",
+  "dest_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy",
+  "total_actions": 25,
+  "actions": [
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/KIT_REQ-001.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/KIT_REQ-001.md"
+    },
+    {
+      "op": "write_suffix",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/README.md.incoming-REQ-001-2025-11-29T21-30-15-275Z"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/ci/HOWTO.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/ci/HOWTO.md"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/ci/LTC.json",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/ci/LTC.json"
+    },
+    {
+      "op": "write_suffix",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/requirements.txt.incoming-REQ-001-2025-11-29T21-30-15-275Z"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/slack_runs/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/dependencies.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/slack_runs/dependencies.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/messages.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/slack_runs/messages.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/models.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/slack_runs/models.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/parsers.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/slack_runs/parsers.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/router.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/slack_runs/router.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/service.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/slack_runs/service.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/signature.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/api/slack_runs/signature.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/app.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/app.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/config.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/config.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/events/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/events/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/events/run.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/events/run.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/infra/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/infra/db.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/db.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/infra/kafka.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/kafka.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/models/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/models/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/src/coffeebuddy/models/run.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/models/run.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-001/test/test_slack_command.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/test/test_slack_command.py"
+    }
+  ]
+}

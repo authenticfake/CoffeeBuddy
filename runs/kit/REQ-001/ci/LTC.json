@@ -34,14 +34,3 @@
     "coverage_min=80 (global profile target)"
   ]
 }
-
-KIT Iteration Log
-- Targeted REQ-001 to deliver Slack run bootstrap per PLAN dependencies (none outstanding).
-- In scope: slash command endpoint, signature verification, run persistence, Slack response, Kafka event, docs/CI assets. Out of scope: order handling, admin flows, migrations (reserved for REQ-006).
-- Tests: `pytest -q runs/kit/REQ-001/test` (uses httpx AsyncClient with ASGITransport, SQLite & fake Kafka).
-- Prerequisites: Python 3.12, pip, optional virtualenv; env vars for Slack secret, DB URL, Kafka brokers when running service.
-- Dependencies/mocks: Kafka publisher mocked in tests via `FakePublisher`; SQLite in-memory DB via SQLAlchemy StaticPool; no external services hit.
-- Product Owner Notes: Command parser currently supports `pickup=` and `note=` key/value pairs; further syntaxes can extend parser without breaking API.
-- RAG citations: SPEC.md, PLAN.md, TECH_CONSTRAINTS.yaml (definitions for acceptance, module layout, env constraints).
-
-{"index":[{"req":"REQ-001","src":["runs/kit/REQ-001/src/coffeebuddy/app.py","runs/kit/REQ-001/src/coffeebuddy/api/slack_runs/*","runs/kit/REQ-001/src/coffeebuddy/models/run.py","runs/kit/REQ-001/src/coffeebuddy/infra/*","runs/kit/REQ-001/src/coffeebuddy/events/run.py","runs/kit/REQ-001/requirements.txt"],"tests":["runs/kit/REQ-001/test/test_slack_command.py"]}]}
