@@ -1,8 +1,8 @@
 {
   "snapshot": {
     "total": 7,
-    "open": 2,
-    "in_progress": 5,
+    "open": 1,
+    "in_progress": 6,
     "done": 0,
     "deferred": 0,
     "progressPct": 0
@@ -134,7 +134,7 @@
       ],
       "dependsOn": [],
       "track": "Infra",
-      "status": "open",
+      "status": "in_progress",
       "lane": "kafka",
       "test_profile": "pytest-kafka-harness",
       "gate_policy_ref": "docs/harper/lane-guides/kafka.md"
