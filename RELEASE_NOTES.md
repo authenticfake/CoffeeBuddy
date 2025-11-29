@@ -1,25 +1,35 @@
-## v1.0.0 — 2024-05-28
+# FINALIZE
 
-### Included Scope
-- REQ-001 Slack run bootstrap pipeline
-- REQ-002 Order capture and preference reuse
-- REQ-003 Run close fairness and summary
-- REQ-004 Reminder scheduling and delivery
-- REQ-005 Admin channel controls and resets
-- REQ-006 Postgres schema and retention policies
-- REQ-007 Kafka topics and reminder worker plumbing
+## Version
+- `v1.0.0` — 2025-01-14
 
-### Highlights
-- End-to-end `/coffee` workflow: start, order, close, summarize, and DM runner within pilot latency targets.
-- Persistent preferences and fairness algorithm ensure transparent runner rotations.
-- Kafka-backed reminder system with retry/backoff plus Prometheus metrics.
-- Admin console with enable/disable, config tuning, and data reset (with audit logging).
-- Hardened infra layer: Alembic migrations, Vault-driven DB credentials, Kafka ACL documentation.
+## Scope & REQ Coverage
+- ✅ REQ-001 Slack run bootstrap
+- ✅ REQ-002 Order capture & preferences
+- ✅ REQ-003 Run close fairness & summaries
+- ✅ REQ-004 Reminder scheduling & delivery
+- ✅ REQ-005 Admin controls & resets
+- ✅ REQ-006 Postgres schema & retention
+- ✅ REQ-007 Kafka topics & reminder plumbing
 
-### Breaking Changes
-- Requires new Postgres schema (`coffeebuddy_core`) and Kafka topics; run migrations and coordinate platform provisioning before deploying.
-- Channels disabled via admin command now reject `/coffee` entirely (previous versions ignored flag).
+## Highlights
+- End-to-end Slack workflow from `/coffee` initiation through runner DM with fairness transparency.
+- Kafka-backed reminder scheduler/worker with ±1 minute SLA and failure retries.
+- Channel-scoped admin UI enforcing authorization, data retention, and disablement policies.
+- Hardened Postgres schema/migrations plus Vault-backed DB session factory.
+- Kafka topic definitions, ACL notes, and consumer metrics aligned with platform requirements.
 
-### Known Issues
-- No automated scaling of reminder workers; horizontal scaling must be configured manually.
-- Postman collection must be regenerated manually from OpenAPI before each release.
+## Breaking Changes
+- Channel records now enforce retention/fairness defaults; existing data must run migration `V0001`.
+- `/coffee` commands issued in disabled channels receive immediate rejection and do not create runs.
+
+## Known Issues
+- Reminder backfill CLI requires manual invocation after Kafka outages; future automation tracked in backlog.
+- No automated Slack workspace provisioning; manual app install remains necessary per environment.
+
+## Tagging Guidance
+- Tag commits that include these artifacts with `v1.0.0`.
+- Upstream services consuming Kafka events should align their deployments to the same tag to avoid schema drift.
+
+## Assumptions
+- Deployment date aligns with tag creation; adjust if release is staged later.
