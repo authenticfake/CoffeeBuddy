@@ -4,7 +4,7 @@
 Harper is an outcome-driven, AI-native workflow: IDEA → SPEC → PLAN → KIT → EVAL → GATE → FINALIZE.
 - Human = orchestrator/validator. AI = executor.
 - Core docs live in \`docs/harper/\` and are **always** part of the model context.
-
+ 
 ## How to use CLike in VS Code
 - Open the **CLike Chat** panel. Use \`/help\` to see commands.
 - Modes: *harper* (planning/generation), *coding* (implementation), *free* (Q&A).

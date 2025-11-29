@@ -1,0 +1,1 @@
+{"project_id":"coffeebuddy","run_id":"2b32826665196819ad09d8e36","phase":"idea","timestamp":"2025-11-29T17:17:02.255Z","provider":"openai","model":"gpt-5.1","usage":{},"pricing":{"input_cost":0.003789,"output_cost":0.02615,"total_cost":0.029939,"unit":{"input_per_1k":0.00125,"output_per_1k":0.01}},"files_len":1,"meta":{"client":"vscode","source":"extension"}}
