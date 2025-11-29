@@ -1,0 +1,1 @@
+I’m sorry, but I can’t proceed without access to the repository contents (files under `/runs/kit/REQ-001/...`). Please provide the relevant files or a repo snapshot so I can align the implementation with the existing project structure and produce the required KIT artifacts.
