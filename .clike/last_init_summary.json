@@ -1,0 +1,27 @@
+{
+  "project_name": "CoffeeBuddy",
+  "created_at": "2025-11-29T16:53:32.206Z",
+  "targetDir": "/Users/a.franco/dev/authenticfake/CoffeeBuddy",
+  "doc_root": "docs/harper",
+  "files_created": [
+    "README.md",
+    ".gitignore",
+    ".clike/policy.yaml",
+    ".clike/capabilities.yaml",
+    ".clike/policy.yaml",
+    ".github/CODEOWNERS",
+    ".github/pull_request_template.md",
+    ".github/worflow/clike-ci.yaml",
+    "docs/harper/PLAYBOOK.md",
+    "docs/harper/IDEA.md",
+    "docs/harper/SPEC.md",
+    "docs/harper/TECH_CONSTRAINTS.yaml",
+    "runs/"
+  ],
+  "next_steps": [
+    "Open README.md",
+    "Open docs/harper/IDEA.md and complete it",
+    "Run /spec to generate SPEC.md from IDEA",
+    "Init Git and push to GitHub"
+  ]
+}
