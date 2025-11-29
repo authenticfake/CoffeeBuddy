@@ -1,36 +1,28 @@
-# PR_BODY
-
 ## Title
-CoffeeBuddy v0.9.0 — Pilot-ready Slack runs, reminders, and admin controls
+CoffeeBuddy slice-1 GA: Slack runs, orders, fairness, reminders, admin, and infra foundations
 
 ## Summary
-- Delivered full `/coffee` workflow with order capture, fairness-based runner assignment, and DM summaries.
-- Added Kafka-backed reminder scheduler, configurable per channel.
-- Built `/coffee admin` channel controls, data reset, and audit logging.
-- Finalized Postgres schema/migrations plus Kafka topic definitions and reminder worker harness.
-- Hardened observability via Prometheus metrics and structured logs.
+- Implements end-to-end `/coffee` workflow with order collection, fairness-based runner assignment, summaries, and DM notifications.
+- Adds Kafka-driven reminder scheduling plus retry/backoff and Prometheus metrics.
+- Delivers admin console, audit logging, retention policies, Alembic migrations, and Kafka topic plumbing.
 
-## Scope (REQ IDs)
-- REQ-001 through REQ-007 (see RELEASE_NOTES for detail)
+## Scope
+- REQ-001 through REQ-007 (see RELEASE_NOTES for detail).
+- No changes beyond SPEC.md and PLAN.md scope; payments, multi-tenant, and non-Slack channels remain out of scope.
 
-## Testing
-- `pytest -q` (unit + integration) — PASS
-- `ruff check .` — PASS
-- `mypy src` — PASS
-- `docker compose up --build` (smoke) — PASS
-- Manual Postman run: slash command → order modal → close → reminder DM (mock Slack) — PASS
+## Test Evidence
+- `poetry run pytest -q`
+- `poetry run ruff check src`
+- `poetry run mypy src`
+- `docker compose up --build api worker db kafka` (manual validation of `/health/ready`, `/metrics`, and reminder DM logs)
+- Kafka smoke test via `kafkacat` confirming `coffeebuddy.run.events` and `coffeebuddy.reminder.events` payloads.
 
 ## Risks
-- Slack signature validation sensitive to clock drift; monitor NTP sync in clusters.
-- Reminder worker single consumer may lag if reminder volume spikes; add autoscaling if pilot load grows.
-- Admin disable relies on Slack role mapping; discrepancies could block legitimate admins.
+- Kafka topic provisioning/ACLs must match `coffeebuddy.infra.kafka` defaults before deploy; mismatches break reminders.
+- Slack app configuration drift (signing secret or scopes) causes 401/invalid signature errors; coordinate with IT before rollout.
+- Reminder worker currently single-threaded; high-volume pilots may need horizontal scaling per TODO_NEXT.
 
 ## Rollback Plan
-1. Redeploy previous Docker image tag `coffeebuddy:v0.8.x`.
-2. Run `alembic downgrade -1` if schema changes must revert (data loss risk acknowledged).
-3. Revert Kafka consumer deployment and delete new topics (if unused).
-4. Restore Vault secrets snapshot if new paths break prior apps.
-5. Notify Slack workspace owners to reinstall previous app manifest if scopes changed.
-
-## Assumptions
-- Platform change windows available for Kong route updates and Kafka topic provisioning.
+1. Scale CoffeeBuddy deployment to zero replicas and stop reminder worker.
+2. Revert database schema via `alembic downgrade -1` if necessary (ensure data backup beforehand).
+3. Restore previous container image/tag in Kubernetes and re-enable traffic through Kong route once health probes pass.
