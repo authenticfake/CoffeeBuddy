@@ -8,3 +8,5 @@
 {"ts":1764438055566,"mode":"harper","role":"system","content":"✔ KIT  done — [echo] manual::gpt-5.1-codex :: KIT generation • [files] 1 • [text] 29 chars","model":"gpt-5.1-codex","attachments":[]}
 {"ts":1764438731497,"mode":"harper","role":"user","content":"▶ KIT  | mode=harper model=gpt-5.1-codex profile=— core=[\"SPEC.md\",\"PLAN.md\",\"TECH_CONSTRAINTS.yaml\"]","model":"gpt-5.1-codex","attachments":[]}
 {"ts":1764438881678,"mode":"harper","role":"system","content":"✔ KIT  done — [echo] manual::gpt-5.1-codex :: KIT generation • [files] 17 • [text] 31 chars","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764439123815,"mode":"harper","role":"user","content":"▶ KIT REQ-001 | mode=harper model=gpt-5.1-codex profile=— core=[\"SPEC.md\",\"PLAN.md\",\"TECH_CONSTRAINTS.yaml\"]","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764439248438,"mode":"harper","role":"system","content":"✔ KIT REQ-001 done — [echo] manual::gpt-5.1-codex :: KIT generation • [files] 25 • [text] 31 chars","model":"gpt-5.1-codex","attachments":[]}

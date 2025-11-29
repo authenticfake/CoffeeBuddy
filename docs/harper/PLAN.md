@@ -2,7 +2,7 @@
 
 ## Plan Snapshot
 
-- **Counts:** total=7 / open=6 / in_progress=1 / done=0 / deferred=0
+- **Counts:** total=7 / open=5 / in_progress=2 / done=0 / deferred=0
 - **Progress:** 0% complete
 - **Checklist:**
   - [x] SPEC aligned
@@ -34,7 +34,10 @@
 | REQ-003 | Run close fairness and summary | Close action restricted to initiator or admins with clear errors<br/>Fairness picks runner via runs_served_count then last_run_at<br/>Run transitions to closed with runner stats updated transactionally<br/>Channel summary lists metadata runner and participant orders<br/>Runner DM mirrors summary plus totals and reminder info | REQ-001, REQ-002, REQ-006 | App | open |
 | REQ-004 | Reminder scheduling and delivery | Runs with pickup time enqueue reminder payloads on Kafka<br/>Runner reminders sent at pickup time minus offset within tolerance<br/>Optional last call channel alerts respect channel settings<br/>Reminder outcomes logged and emitted as metrics<br/>Failed reminders retried with backoff and surfaced in errors | REQ-003, REQ-007 | App | open |
 | REQ-005 | Admin channel controls and resets | Admin command verifies Slack roles or configured admins<br/>Config UI updates reminder offset fairness window retention bounds<br/>Config changes persist and emit audit entries<br/>Disabled channels reject new runs with clear notice<br/>Data reset purges channel history and logs action summary | REQ-001, REQ-006 | App | open |
-| REQ-006 | Postgres schema and retention policies | Migrations create tables for users channels runs orders preferences stats audits<br/>Retention columns default to 90 days and accept overrides<br/>ORM models expose shared serialization helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | open |
+| REQ-006 | Postgres schema and retention policies | Migrations create tables for users channels runs orders preferences stats audits<br/>Retention columns default to 90 days and accept overrides<br/>ORM models expose shared serialization helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | in_progress |
+| REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | open |
+
+zation helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | open |
 | REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | open |
 
 zes sessions | [] | Infra | open |

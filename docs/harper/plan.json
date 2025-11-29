@@ -1,8 +1,8 @@
 {
   "snapshot": {
     "total": 7,
-    "open": 6,
-    "in_progress": 1,
+    "open": 5,
+    "in_progress": 2,
     "done": 0,
     "deferred": 0,
     "progressPct": 0
@@ -117,7 +117,7 @@
       ],
       "dependsOn": [],
       "track": "Infra",
-      "status": "open",
+      "status": "in_progress",
       "lane": "sql",
       "test_profile": "pytest-alembic",
       "gate_policy_ref": "docs/harper/lane-guides/sql.md"
