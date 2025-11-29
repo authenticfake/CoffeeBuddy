@@ -1,0 +1,94 @@
+{
+  "req_id": "REQ-006",
+  "strategy": "suffix",
+  "timestamp": "2025-11-29T21-18-17-482Z",
+  "src_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006",
+  "dest_root": "/Users/a.franco/dev/authenticfake/CoffeeBuddy",
+  "total_actions": 17,
+  "actions": [
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/KIT_REQ-006.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/KIT_REQ-006.md"
+    },
+    {
+      "op": "write_suffix",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/README.md.incoming-REQ-006-2025-11-29T21-18-17-482Z"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/ci/HOWTO.md",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/ci/HOWTO.md"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/ci/LTC.json",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/ci/LTC.json"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/config/database.env.example",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/config/database.env.example"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/requirements.txt",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/requirements.txt"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/scripts/db_downgrade.sh",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/scripts/db_downgrade.sh"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/scripts/db_upgrade.sh",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/scripts/db_upgrade.sh"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/src/coffeebuddy/infra/db/__init__.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/db/__init__.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/src/coffeebuddy/infra/db/models.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/db/models.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/src/coffeebuddy/infra/db/schema_loader.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/db/schema_loader.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/src/coffeebuddy/infra/db/session.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/coffeebuddy/infra/db/session.py"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/src/storage/seed/seed.sql",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/storage/seed/seed.sql"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/src/storage/spec/schema.yaml",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/storage/spec/schema.yaml"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/src/storage/sql/V0001.down.sql",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/storage/sql/V0001.down.sql"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/src/storage/sql/V0001.up.sql",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/src/storage/sql/V0001.up.sql"
+    },
+    {
+      "op": "copy",
+      "from": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/runs/kit/REQ-006/test/test_migration_sql.py",
+      "to": "/Users/a.franco/dev/authenticfake/CoffeeBuddy/test/test_migration_sql.py"
+    }
+  ]
+}
