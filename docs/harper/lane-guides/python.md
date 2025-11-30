@@ -1,24 +1,38 @@
 ## Lane Guide — python
 
 ### Tools
-- tests: `pytest` with coverage plugin (`pytest-cov`)
-- lint: `ruff` (PEP8 + import sorting)
-- types: `mypy --strict`
-- security: `bandit -r src`
-- build: `poetry build` or `pip wheel` within internal registry context
+
+- tests: pytest, pytest-asyncio, requests-mock for HTTP, moto or equivalents if cloud mocks are ever needed but avoid non required
+- lint: flake8 or ruff, isort for imports, black for formatting
+- types: mypy with strictness for core domains, typing-extensions as needed
+- security: bandit for static analysis, dependency scanner aligned with internal tooling
+- build: docker or Podman for images, pip-tools or uv for lockfiles where allowed
 
 ### CLI Examples
-- Local: `poetry run pytest && poetry run ruff check . && poetry run mypy`
-- Containerized: `docker compose run --rm app bash -lc "pytest && ruff check . && mypy"`
+
+- Local:
+  - Run tests: `pytest -q`
+  - Run type checks: `mypy coffeebuddy`
+  - Run lints: `ruff check coffeebuddy`
+  - Start dev server: `uvicorn coffeebuddy.app.main:app --reload`
+- Containerized:
+  - Build image: `docker build -t coffeebuddy:dev .`
+  - Run tests in container: `docker run --rm coffeebuddy:dev pytest -q`
 
 ### Default Gate Policy
-- min coverage: 80%
-- max criticals: 0 Bandit HIGH findings, 0 Ruff errors
+
+- min coverage: 80% line coverage for new and changed python modules
+- max criticals: zero critical or high severity findings from bandit or dependency scanner before merge
+- quality: no new mypy errors, lints must pass with no fatal issues
 
 ### Enterprise Runner Notes
-- SonarQube: upload coverage via `sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml`
-- Jenkins: use shared library `py-ci` with stages lint → test → scan; artifacts stored in Nexus
+
+- SonarQube: configure Python analysis using existing project key, import coverage via XML generated from pytest
+- Jenkins or similar CI: use pipeline stages for lint, type-check, tests, coverage, and image build, publish artifacts and reports
+- Artifacts: store coverage reports, junit XML, and built images in internal artifact or container registry
 
 ### TECH_CONSTRAINTS integration
-- air-gap: use internal PyPI mirror (`https://pypi.corp.local/simple`)
-- registries: container builds push to `harbor.corp.local/coffeebuddy/python` with signed images
+
+- air-gap: use internal Python package mirror, pin versions and vendor critical dependencies if external access restricted
+- registries: push images only to approved on prem registry, reference via internal DNS in Kubernetes manifests
+- tokens: obtain registry and SCM tokens via Vault or CI secret store, never hardcode in repository

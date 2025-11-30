@@ -1,24 +1,37 @@
 ## Lane Guide — infra
 
 ### Tools
-- tests: `pytest` for infra modules plus `tox` profile `infra`
-- lint: `ruff` for Python infra code, `yamllint` for manifests
-- types: `mypy` on `infra.platform`
-- security: `trivy config` for Kubernetes specs, `trivy fs` for images
-- build: `docker build -f Dockerfile` with hardened base image
+
+- tests: kubeval or kubeconform for manifest validation, kubectl and helm for dry runs
+- lint: yamllint, kube-linter or equivalent for Kubernetes best practices
+- types: schema validation for Kubernetes resources, OpenAPI for ingress where applicable
+- security: trivy or similar for image scanning, Polaris or OPA Gatekeeper for policy checks
+- build: docker or Podman for images, Helm or Kustomize for manifests
 
 ### CLI Examples
-- Local: `poetry run pytest tests/infra && trivy fs . && kubectl apply --dry-run=client -f k8s/`
-- Containerized: `docker compose run --rm infra bash -lc "pytest tests/infra && trivy config k8s"`
+
+- Local:
+  - Validate manifests: `kubeconform -strict -summary k8s/*.yaml`
+  - Lint YAML: `yamllint k8s`
+  - Helm template: `helm template coffeebuddy ./chart`
+- Containerized:
+  - Run infra tests: `docker run --rm -v $PWD/k8s:/k8s kubeconform-image ...`
+  - Use CI job to apply manifests to dev cluster with `kubectl apply`
 
 ### Default Gate Policy
-- min coverage: 80% on infra modules
-- max criticals: 0 Trivy HIGH/CRITICAL, 0 failing readiness probes
+
+- min coverage: all Kubernetes manifests validated and linted in CI before deployment
+- max criticals: zero critical image vulnerabilities and zero high severity policy violations
+- reliability: liveness and readiness probes required for all workloads, resource limits defined
 
 ### Enterprise Runner Notes
-- SonarQube: import infra repo using Python + YAML analyzers
-- Jenkins: pipeline stages `vault-smoke`, `ory-smoke`, `k8s-probes`; artifacts stored in Artifactory with signed manifests
+
+- SonarQube: limited direct infra support, treat manifests as infrastructure as code reviewed via separate tooling
+- Jenkins: pipelines for build image, scan image, validate manifests, then deploy to dev and later environments
+- Artifacts: store rendered manifests and Helm charts in artifact repositories for traceability
 
 ### TECH_CONSTRAINTS integration
-- air-gap: base images from `harbor.corp.local/python-secure`; kubectl and helm binaries mirrored internally
-- registries: Vault secret paths accessible via on-prem endpoints; Ory tokens fetched from internal IdP only
+
+- air-gap: base images pulled from internal registries, Kubernetes cluster is on prem only
+- registries: all images referenced via internal registry URLs, no public registry at deploy time
+- tokens: use Vault or Kubernetes secrets for Slack tokens DB credentials OIDC settings, rotate according to policy

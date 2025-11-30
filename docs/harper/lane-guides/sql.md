@@ -1,24 +1,37 @@
 ## Lane Guide — sql
 
 ### Tools
-- tests: `pytest` + `pytest-postgresql` fixtures or `pg_prove`
-- lint: `sqlfluff lint --dialect postgres`
-- types: schema validation via `schemainspect`
-- security: `psql -c "\dr"` review for least-privilege roles
-- build: `alembic upgrade head` (migrations packaged)
+
+- tests: pytest with fixtures spinning up Postgres containers, or platform provided test databases
+- lint: sqlfluff or internal SQL linters following enterprise style guides
+- types: schema validation via migration tool introspection, not traditional typing
+- security: database permission reviews, scripts checked for use of least privilege roles
+- build: migration tooling such as Alembic or Flyway, executed via CI jobs
 
 ### CLI Examples
-- Local: `docker compose up -d postgres && alembic upgrade head && pytest tests/data`
-- Containerized: `docker compose run --rm db-migrations alembic upgrade head`
+
+- Local:
+  - Start Postgres: `docker run --rm -e POSTGRES_PASSWORD=pass -p 5432:5432 postgres:16`
+  - Run migrations: `alembic upgrade head`
+  - Run DB tests: `pytest -m db`
+- Containerized:
+  - Use docker compose or platform templates to run app plus Postgres
+  - Execute migrations in init container or CI migration job
 
 ### Default Gate Policy
-- min coverage: 80% on repository layer
-- max criticals: 0 failed migrations, 0 SQLFluff violations
+
+- min coverage: tests must exercise all migrations up and down at least once in CI
+- max criticals: zero critical SQL injection or privilege escalation issues from reviews
+- integrity: all foreign keys not null constraints and enums validated via tests
 
 ### Enterprise Runner Notes
-- SonarQube: enable SQL analyzer ruleset, upload via Jenkins post-step
-- Jenkins: stage `db-migrate` executes migrations against ephemeral DB, artifacts stored as migration bundles
+
+- SonarQube: limited direct SQL analysis, but include schema definitions as part of documentation
+- Jenkins: dedicated DB migration stage, abort pipeline if migrations fail or checksum mismatches
+- Artifacts: store migration scripts and generated schema diagrams in artifact repository
 
 ### TECH_CONSTRAINTS integration
-- air-gap: base Postgres image from internal registry `harbor.corp.local/postgres`
-- registries: alembic container image pinned and mirrored internally; no internet access during CI
+
+- air-gap: base Postgres images mirrored internally, migration tools installed from internal package mirrors
+- registries: database connection endpoints use internal hostnames and ports only
+- tokens: DB credentials provisioned via Vault into CI and runtime, use short lived credentials when available

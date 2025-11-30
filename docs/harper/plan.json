@@ -1,7 +1,7 @@
 {
   "snapshot": {
-    "total": 7,
-    "open": 7,
+    "total": 10,
+    "open": 10,
     "in_progress": 0,
     "done": 0,
     "deferred": 0,
@@ -10,137 +10,172 @@
   "reqs": [
     {
       "id": "REQ-001",
-      "title": "Slash command run lifecycle",
+      "title": "Slack slash command and interaction HTTP endpoints",
       "acceptance": [
-        "Slash command verifies Slack signatures responds under 2s",
-        "Run records persisted with correct states and events",
-        "Close control enforces permissions and prevents duplicates",
-        "Channel message reflects latest counts and controls",
-        "Errors surface as clear Slack hints without leaking secrets"
-      ,
-      "dependsOn": [
-        "REQ-005"
-      ],
+        "Handle Slack slash command POST with signature verification and latency within target",
+        "Handle Slack interactive callbacks updating messages and state appropriately",
+        "Return clear guidance on invalid command syntax without exposing internal details",
+        "Include correlation IDs on all request logs and responses where applicable",
+        "Avoid logging Slack tokens signing secrets or full payload bodies"
+      },
+      "dependsOn": ["REQ-007", "REQ-010"],
       "track": "App",
       "status": "open",
       "lane": "python",
-      "test_profile": "pytest-fast",
+      "test_profile": "pytest-http-slack",
       "gate_policy_ref": "docs/harper/lane-guides/python.md"
     },
     {
       "id": "REQ-002",
-      "title": "Order capture and preferences",
+      "title": "Run lifecycle domain model and persistence",
       "acceptance": [
-        "Order modal validates inputs before persistence",
-        "Use last order pulls stored preference into run",
-        "Edits cancelations update channel roster promptly",
-        "Duplicate orders blocked with user facing errors",
-        "Preference store refreshes on confirmed order"
-      ],
-      "dependsOn": [
-        "REQ-001",
-        "REQ-005"
-      ],
+        "Define User Channel Run models matching SPEC logical schema",
+        "Persist Run records with correct status timestamps and relationships",
+        "Associate new runs with appropriate User and Channel records",
+        "Provide repository queries for latest runs per channel and status",
+        "Emit run_created domain events ready for Kafka publishing"
+      },
+      "dependsOn": ["REQ-008"],
       "track": "App",
       "status": "open",
       "lane": "python",
-      "test_profile": "pytest-core",
+      "test_profile": "pytest-domain-db",
       "gate_policy_ref": "docs/harper/lane-guides/python.md"
     },
     {
       "id": "REQ-003",
-      "title": "Runner fairness and summaries",
+      "title": "Order collection and preference persistence UX",
       "acceptance": [
-        "Fairness service selects runner per window rules",
-        "Runner assignment and stats updated atomically",
-        "Channel summary lists runner participants orders",
-        "Runner DM mirrors summary with totals",
-        "Kafka events emit closure and assignment data"
-      ],
-      "dependsOn": [
-        "REQ-001",
-        "REQ-002",
-        "REQ-005"
-      ],
+        "Allow users to create edit and cancel orders for an open run",
+        "Enforce one active order per user per run in persistence layer",
+        "Persist UserPreference records storing last confirmed order per channel",
+        "Update channel message participant counts accurately after changes",
+        "Emit order_updated events suitable for Kafka without sensitive text"
+      },
+      "dependsOn": ["REQ-001", "REQ-002", "REQ-007"],
       "track": "App",
       "status": "open",
       "lane": "python",
-      "test_profile": "pytest-fairness",
+      "test_profile": "pytest-domain-slack",
       "gate_policy_ref": "docs/harper/lane-guides/python.md"
     },
     {
       "id": "REQ-004",
-      "title": "Reminder scheduling via Kafka",
+      "title": "Fair runner assignment algorithm and transparency",
       "acceptance": [
-        "Run events published to Kafka topics reliably",
-        "Scheduler persists reminder jobs per run config",
-        "Runner DM last call sent within configured window",
-        "Config toggle prevents reminders when disabled",
-        "Reminder latency tracked via metrics assertions"
-      ],
-      "dependsOn": [
-        "REQ-001",
-        "REQ-005"
-      ],
-      "track": "App",
-      "status": "open",
-      "lane": "kafka",
-      "test_profile": "pytest-reminders",
-      "gate_policy_ref": "docs/harper/lane-guides/kafka.md"
-    },
-    {
-      "id": "REQ-005",
-      "title": "Data persistence foundations",
-      "acceptance": [
-        "Migrations create normalized tables and indexes",
-        "Repositories enforce retention per channel config",
-        "Defaults seeded for reminder and fairness windows",
-        "Unit of work helpers exposed for app services",
-        "DB integration tests pass using Postgres container"
-      ],
-      "dependsOn": [],
-      "track": "Infra",
-      "status": "open",
-      "lane": "sql",
-      "test_profile": "pytest-db",
-      "gate_policy_ref": "docs/harper/lane-guides/sql.md"
-    },
-    {
-      "id": "REQ-006",
-      "title": "Admin flows and config governance",
-      "acceptance": [
-        "Admin command gated by Slack roles allowlist",
-        "Enable disable toggles take effect immediately",
-        "Config updates validated logged and persisted",
-        "Data reset purges channel scoped history safely",
-        "Admin actions recorded for audit retrieval"
-      ],
-      "dependsOn": [
-        "REQ-005"
-      ],
+        "Maintain RunnerStats per user per channel with counts and timestamps",
+        "Implement fairness algorithm using configurable recent window parameters",
+        "Exclude last runner unless opted in according to rules",
+        "Integrate algorithm into run closing updating Run and RunnerStats",
+        "Provide human readable explanation of runner choice in summary"
+      },
+      "dependsOn": ["REQ-002", "REQ-003", "REQ-008"],
       "track": "App",
       "status": "open",
       "lane": "python",
-      "test_profile": "pytest-admin",
+      "test_profile": "pytest-domain-fairness",
+      "gate_policy_ref": "docs/harper/lane-guides/python.md"
+    },
+    {
+      "id": "REQ-005",
+      "title": "Reminder scheduling and Kafka driven execution",
+      "acceptance": [
+        "Schedule reminders when runs have pickup_time and reminders enabled",
+        "Represent reminders as durable Kafka events with due timestamps",
+        "Consume reminder events and send Slack DMs and last call messages",
+        "Respect per channel reminder enable disable settings at execution",
+        "Ensure reminder timing within plus minus one minute of target"
+      },
+      "dependsOn": ["REQ-002", "REQ-007", "REQ-009"],
+      "track": "App",
+      "status": "open",
+      "lane": "python",
+      "test_profile": "pytest-domain-reminders",
+      "gate_policy_ref": "docs/harper/lane-guides/python.md"
+    },
+    {
+      "id": "REQ-006",
+      "title": "Admin configuration commands and channel data reset",
+      "acceptance": [
+        "Expose /coffee admin command with admin only interactive UI",
+        "Validate admin rights using Slack roles or configured lists",
+        "Persist channel settings and retain audit trail for changes",
+        "Implement channel scoped data reset honoring retention rules",
+        "Communicate results of admin actions clearly in Slack messages"
+      },
+      "dependsOn": ["REQ-001", "REQ-002", "REQ-003", "REQ-008"],
+      "track": "App",
+      "status": "open",
+      "lane": "python",
+      "test_profile": "pytest-domain-admin",
       "gate_policy_ref": "docs/harper/lane-guides/python.md"
     },
     {
       "id": "REQ-007",
-      "title": "Platform integration and observability",
+      "title": "Metrics logging and error handling behavior",
       "acceptance": [
-        "Vault secrets loaded without logging sensitive data",
-        "Ory auth middleware enforces internal scopes",
-        "Kong ingress contract validated via smoke tests",
-        "Prometheus metrics expose required counters histograms",
-        "Liveness readiness probes verify deps connectivity"
-      ],
-      "dependsOn": [
-        "REQ-005"
-      ],
+        "Provide Prometheus metrics endpoint with required counters and histograms",
+        "Implement structured JSON logging including correlation IDs and categories",
+        "Define error handling middleware for HTTP endpoints and background tasks",
+        "Avoid logging secrets or unnecessary message contents in all paths",
+        "Validate metrics and logs against pilot observability expectations"
+      },
+      "dependsOn": ["REQ-010"],
+      "track": "App",
+      "status": "open",
+      "lane": "python",
+      "test_profile": "pytest-observability",
+      "gate_policy_ref": "docs/harper/lane-guides/python.md"
+    },
+    {
+      "id": "REQ-008",
+      "title": "Postgres schema migrations and repository layer",
+      "acceptance": [
+        "Design SQL schema for all CoffeeBuddy entities with constraints",
+        "Implement idempotent migrations usable across dev test and prod",
+        "Provide connection pooling and health checks for Postgres access",
+        "Implement repositories supporting domain operations efficiently",
+        "Document schema and migration procedures for platform teams"
+      },
+      "dependsOn": ["REQ-010"],
+      "track": "Infra",
+      "status": "open",
+      "lane": "sql",
+      "test_profile": "pytest-db-migrations",
+      "gate_policy_ref": "docs/harper/lane-guides/sql.md"
+    },
+    {
+      "id": "REQ-009",
+      "title": "Kafka topics configuration and client wrappers",
+      "acceptance": [
+        "Define and document required Kafka topics and configurations",
+        "Implement producer wrapper for publishing domain events safely",
+        "Implement consumer abstraction with offset and error handling",
+        "Expose metrics for Kafka publish failures lag and processing",
+        "Validate event flows in test environment end to end"
+      },
+      "dependsOn": ["REQ-010"],
+      "track": "Infra",
+      "status": "open",
+      "lane": "kafka",
+      "test_profile": "pytest-kafka-integration",
+      "gate_policy_ref": "docs/harper/lane-guides/kafka.md"
+    },
+    {
+      "id": "REQ-010",
+      "title": "Runtime integration with Kubernetes Kong Vault Ory Prometheus",
+      "acceptance": [
+        "Build Python 3.12 container image with health endpoints exposed",
+        "Provide Kubernetes manifests including Deployment Service and config",
+        "Configure Kong Vault Ory and Prometheus integration for service",
+        "Ensure deployment uses only on prem resources and Slack",
+        "Document deployment steps configuration and environment variables"
+      },
+      "dependsOn": [],
       "track": "Infra",
       "status": "open",
       "lane": "infra",
-      "test_profile": "pytest-ops",
+      "test_profile": "kube-manifest-validate",
       "gate_policy_ref": "docs/harper/lane-guides/infra.md"
     }
   ]

@@ -61,3 +61,5 @@
 {"ts":1764531573580,"mode":"harper","role":"system","content":"✔ Gate runs/kit/REQ-003/ci/LTC.json: PASS","model":"gpt-5.1-codex"}
 {"ts":1764532095279,"mode":"harper","role":"user","content":"▶ PLAN  | mode=harper model=gpt-5.1-codex profile=— core=[\"SPEC.md\",\"TECH_CONSTRAINTS.yaml\"]","model":"gpt-5.1-codex","attachments":[]}
 {"ts":1764532168802,"mode":"harper","role":"system","content":"✔ PLAN  done — [echo] Plan phase: manual::gpt-5.1-codex :: PLAN generation • [files] 6 • [text] 32 chars","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764532644442,"mode":"harper","role":"user","content":"▶ PLAN  | mode=harper model=gpt-5.1 profile=— core=[\"SPEC.md\",\"TECH_CONSTRAINTS.yaml\"]","model":"gpt-5.1","attachments":[]}
+{"ts":1764532802092,"mode":"harper","role":"system","content":"✔ PLAN  done — [echo] Plan phase: manual::gpt-5.1 :: PLAN generation • [files] 6 • [text] 32 chars","model":"gpt-5.1","attachments":[]}

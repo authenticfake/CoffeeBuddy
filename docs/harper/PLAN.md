@@ -2,8 +2,8 @@
 
 ## Plan Snapshot
 
-- **Counts:** total 7 / open 7 / done 0 / deferred 0
-- **Progress:** 0%
+- **Counts:** 10 total / 10 open / 0 done / 0 deferred
+- **Progress:** 0% complete
 - **Checklist:**
   - [ ] SPEC aligned
   - [ ] Prior REQ reconciled
@@ -12,163 +12,341 @@
 
 ## Tracks & Scope Boundaries
 
-- **Tracks:** App (Slack UX, domain logic) and Infra (data, platform, observability). Infra REQs unblock App but remain minimal.
-- **Out of scope / Deferred:** payment/tipping, multi-workspace, external analytics, non-Slack clients, AI personalization, production-grade multi-tenant controls.
+- **Tracks:**
+  - App:
+    - Slack-facing CoffeeBuddy service, run lifecycle, orders and preferences
+    - Fairness algorithm and runner assignment
+    - Reminder scheduling logic
+    - Admin and configuration flows
+    - Metrics, logging, and error UX
+  - Infra:
+    - Database schema and migrations for CoffeeBuddy
+    - Kafka topics and consumer/producer wiring
+    - Kubernetes, Kong, Vault, Ory, Prometheus integration
+
+- **Out of scope / Deferred:**
+  - Any non-Slack interfaces or UIs
+  - Advanced analytics or external BI integrations
+  - Multi-tenant or multi-workspace scaling features
+  - Payment, tipping, or vendor integrations
+  - AI-based personalization
 
 ## Module/Package & Namespace Plan (per KIT)
 
-- **Slice `runs` (`app.slack.runs`, shared util `app.shared.auth`):** REQ-001 owns slash command handler and run state transitions; new helpers must live under `app.slack.runs`. It reuses repositories from `data.persistence`.
-- **Slice `orders` (`app.slack.orders`):** REQ-002 manages order modals, last-order reuse, and validations; only extends existing modules.
-- **Slice `fairness` (`app.slack.fairness`):** REQ-003 extends run closing to calculate runner selection and summary messaging; must integrate with `app.slack.runs` services.
-- **Slice `reminders` (`app.kafka.reminders`):** REQ-004 introduces Kafka producers/consumers plus schedulers; it may add submodules `scheduler` and `handlers` but must reuse repos/types.
-- **Slice `admin` (`app.slack.admin`):** REQ-006 handles admin slash flows, channel config mutations, and audits using `data.config`.
-- **Infra Modules:**
-  - `data.persistence` (REQ-005) defines SQL migrations, ORM models, and repository interfaces for runs, orders, preferences, runner stats, channel config, and audit logs. App layers must depend on these repositories only.
-  - `infra.platform` (REQ-007) configures Vault secret loading, Ory token validation, Kong route contract validation, readiness/liveness probes, logging, and Prometheus metrics registration. App code must call these shared utilities rather than duplicating setup.
-- **Shared Modules:** `app.shared.slack` (signature verification, Slack client), `app.shared.events` (Kafka payload DTOs), `app.shared.metrics`. App REQs extend rather than recreate these modules.
+Canonical Python package root: `coffeebuddy`. All App REQs extend this tree, not invent new top-level roots.
+
+Suggested layering:
+
+- `coffeebuddy.api.slack` — HTTP handlers for Slack commands and interactions
+- `coffeebuddy.domain.runs` — run aggregate, lifecycle logic
+- `coffeebuddy.domain.orders` — order and preference logic
+- `coffeebuddy.domain.fairness` — runner assignment algorithms
+- `coffeebuddy.domain.reminders` — reminder scheduling computations
+- `coffeebuddy.domain.admin` — admin commands and configuration domain logic
+- `coffeebuddy.infrastructure.db` — DB session, repositories, migrations glue
+- `coffeebuddy.infrastructure.kafka` — Kafka producers and consumers
+- `coffeebuddy.infrastructure.slack_client` — typed wrapper around Slack Web API
+- `coffeebuddy.infrastructure.secrets` — Vault integration, config loading
+- `coffeebuddy.infrastructure.auth` — Ory and OIDC helpers
+- `coffeebuddy.observability` — logging, metrics, tracing helpers
+- `coffeebuddy.app` — application wiring, dependency injection, startup
+
+Per-REQ ownership:
+
+- REQ-001:
+  - Primary: `coffeebuddy.api.slack`
+  - Shared: `coffeebuddy.infrastructure.slack_client`, `coffeebuddy.observability`
+  - May create new modules under `coffeebuddy.api` only
+
+- REQ-002:
+  - Primary: `coffeebuddy.domain.runs`
+  - Shared: `coffeebuddy.infrastructure.db`
+  - Can extend `coffeebuddy.domain.runs`, must reuse DB infra
+
+- REQ-003:
+  - Primary: `coffeebuddy.domain.orders`
+  - Shared: `coffeebuddy.domain.runs`, `coffeebuddy.infrastructure.db`, `coffeebuddy.api.slack`
+  - Can extend `coffeebuddy.domain.orders` and Slack views only
+
+- REQ-004:
+  - Primary: `coffeebuddy.domain.fairness`
+  - Shared: `coffeebuddy.domain.runs`, `coffeebuddy.domain.orders`, `coffeebuddy.infrastructure.db`
+  - Must not duplicate run or stats models
+
+- REQ-005:
+  - Primary: `coffeebuddy.domain.reminders`
+  - Shared: `coffeebuddy.infrastructure.kafka`, `coffeebuddy.domain.runs`
+  - May add consumer logic under `coffeebuddy.app` but reuse Kafka module
+
+- REQ-006:
+  - Primary: `coffeebuddy.domain.admin`
+  - Shared: `coffeebuddy.infrastructure.db`, `coffeebuddy.api.slack`, `coffeebuddy.observability`
+  - Must extend `domain.admin` and Slack admin handlers only
+
+- REQ-007:
+  - Primary: `coffeebuddy.observability`
+  - Shared: used by all modules
+  - Extends existing logging and metrics utilities only, no business logic
+
+- REQ-008:
+  - Primary: `coffeebuddy.infrastructure.db`
+  - Shared: all domain modules
+  - Creates migration structure, connection management, no business rules
+
+- REQ-009:
+  - Primary: `coffeebuddy.infrastructure.kafka`
+  - Shared: reminders, analytics, run lifecycle
+  - Creates topic config bindings and producer/consumer wrappers only
+
+- REQ-010:
+  - Primary: `coffeebuddy.infrastructure.runtime`
+  - Shared: `coffeebuddy.app`, `coffeebuddy.infrastructure.secrets`, `coffeebuddy.infrastructure.auth`
+  - Kubernetes, Kong, Vault, Ory, Prometheus glue, no domain logic
 
 ## REQ-IDs Table
 
-| ID | Title | Acceptance (≤3 bullets) | DependsOn [IDs] | Track | Status |
-| --- | --- | --- | --- | --- | --- |
-| REQ-001 | Slash command run lifecycle | `/coffee` ack under 2s with interactive message<br>Run records persisted with state machine<br>Close control validates permissions and status | REQ-005 | App | open |
-| REQ-002 | Order capture and preferences | Modal collects orders with validation<br>“Use last order” replays stored preference<br>Edits/cancels reflected in channel message counts | REQ-001, REQ-005 | App | open |
-| REQ-003 | Runner fairness and summaries | Fairness rule selects runner with explanation<br>Summary posted in channel plus runner DM<br>Runner stats updated atomically on close | REQ-001, REQ-002, REQ-005 | App | open |
-| REQ-004 | Reminder scheduling via Kafka | Run events emitted to Kafka topics<br>Reminder consumer schedules DM/last-call<br>Channel config toggles reminders on/off | REQ-001, REQ-005 | App | open |
-| REQ-005 | Data persistence foundations | SQL migrations cover all entities<br>Repository layer enforces retention windows<br>Channel config defaults seeded per SPEC | | Infra | open |
-| REQ-006 | Admin flows and config governance | `/coffee admin` gated by Slack roles<br>Enable/disable and config updates persisted<br>Data reset wipes runs/orders/prefs per channel | REQ-005 | App | open |
-| REQ-007 | Platform integration & observability | Vault/Ory/Kong wiring centralized<br>Prometheus metrics and histograms exposed<br>Structured logging with correlation IDs + probes | REQ-005 | Infra | open |
+|ID|Title|Acceptance (≤3 bullets)|DependsOn [IDs]|Track|Status|
+|---|---|---|---|---|---|
+|REQ-001|Slack slash command and interaction HTTP endpoints|Slash command endpoint handles valid requests within latency target<br>Interactive endpoint processes button and modal callbacks<br>Invalid commands return helpful usage guidance|REQ-007, REQ-010|App|open|
+|REQ-002|Run lifecycle domain model and persistence|Run entities persisted with open closed canceled failed statuses<br>Run creation linked to channel and initiator user<br>Runs queriable by channel and recent activity|REQ-008|App|open|
+|REQ-003|Order collection and preference persistence UX|Users submit edit cancel orders per run without duplicates<br>Last confirmed order stored per user channel<br>Channel message shows accurate participant count|REQ-001, REQ-002, REQ-007|App|open|
+|REQ-004|Fair runner assignment algorithm and transparency|Runner stats maintained per user channel<br>Algorithm chooses user with lowest recent runs not repeating unfairly<br>Summary explains runner choice briefly|REQ-002, REQ-003, REQ-008|App|open|
+|REQ-005|Reminder scheduling and Kafka driven execution|Reminders scheduled when pickup time set and channel enabled<br>Kafka events trigger runner and channel reminders<br>Reminders respect per channel enable disable settings|REQ-002, REQ-007, REQ-009|App|open|
+|REQ-006|Admin configuration commands and channel data reset|Admin command restricted to authorized users<br>Channel config updates persisted and auditable<br>Data reset removes channel historical impact on fairness|REQ-001, REQ-002, REQ-003, REQ-008|App|open|
+|REQ-007|Metrics logging and error handling behavior|Prometheus metrics endpoint exposes required counters and histograms<br>Structured logs include correlation IDs and avoid sensitive data<br>User facing errors are clear and instructive|REQ-010|App|open|
+|REQ-008|Postgres schema migrations and repository layer|All entities mapped to tables with constraints<br>Migrations runnable idempotently across environments<br>Repository APIs support domain operations efficiently|REQ-010|Infra|open|
+|REQ-009|Kafka topics configuration and client wrappers|Required topics created and documented<br>Producer and consumer wrappers abstract Kafka usage<br>Error handling and retries configured per policy|REQ-010|Infra|open|
+|REQ-010|Runtime integration with Kubernetes Kong Vault Ory Prometheus|Service runs on Kubernetes with health endpoints<br>Kong route exposes Slack endpoints securely<br>Vault Ory Prometheus wired per constraints| |Infra|open|
 
 ### Acceptance — REQ-001
-- Slash command endpoint verifies Slack signatures and responds within 2 seconds with an interactive run message containing run metadata, controls, and correlation ID.
-- Run creation persists channel, initiator, pickup metadata, and status=open using repositories from `data.persistence`, emitting `run_created`.
-- Close control validates caller authority, ensures run is open, and transitions to closing workflow while preventing concurrent closes via optimistic locks.
-- Public channel message stays updated with order counts and buttons by referencing run ID, with retries on transient Slack API failures logged.
-- Errors (invalid syntax, disabled channel, missing scopes) produce ephemeral Slack hints and log structured reasons without revealing secrets.
+
+- Implement HTTP endpoint to receive Slack slash commands routed via Kong using POST and Slack signature verification.
+- Implement HTTP endpoint for Slack interactive payloads handling block actions and modal submissions with signature verification.
+- Respond to valid `/coffee` commands within 2 seconds with an ephemeral or public interactive message starting a run.
+- Return clear usage guidance when command syntax is invalid including correct examples without exposing internal details.
+- Ensure endpoints validate Slack workspace configuration and return actionable error messages when scopes or setup are missing.
+- Correlate each incoming Slack request with a generated correlation ID and propagate it through logs and downstream calls.
+- Ensure endpoints never log raw Slack tokens signing secrets or full message bodies beyond minimal debugging fields.
 
 ### Acceptance — REQ-002
-- “Place order” button opens a Slack modal collecting drink text plus optional notes, validates payload, and stores or updates the `Order` tied to user/run.
-- “Use last order” pulls the latest confirmed preference for that user/channel, writes a new `Order`, and stamps `UserPreference.last_used_at`.
-- Users can edit or cancel orders before close; channel message and order roster reflect changes within one interaction cycle.
-- Duplicate active orders for the same user/run are prevented through transactional guards, returning clear Slack errors if attempted.
-- Updating a confirmed order refreshes the stored preference so future runs surface it by default.
+
+- Define domain models for User Channel Run and link them according to the SPEC logical data model.
+- Persist Run records with statuses open closed canceled failed including timestamps for started and closed times.
+- Ensure run creation associates the Slack channel and initiator user creating Channel and User rows when missing.
+- Provide repository methods to query latest runs per channel and by status to support workflows and fairness logic.
+- Enforce invariants so a run cannot transition from closed to open or from failed to closed via repository APIs.
+- Emit a domain event object representing run_created to be published to Kafka without coupling to Kafka implementation.
+- Handle transactional persistence so run creation and event enqueueing either both succeed or inconsistencies are avoided.
 
 ### Acceptance — REQ-003
-- On run close, fairness service gathers eligible participants, excludes last runner unless opt-in flag, and selects the user with lowest `runs_served_count`, then earliest `last_run_at`.
-- Runner assignment, run closure, runner stats increment, and summary posting occur within a single transaction + post-commit Slack send to avoid partial states.
-- Summary message lists runner, pickup note, participants, and per-order text; explanation line cites fairness rule inputs.
-- Runner receives DM with identical summary plus total item count; delivery failures are surfaced in logs and metrics.
-- Kafka events `run_closed` and `runner_assigned` carry runner metadata and fairness window stats for downstream consumers.
+
+- Implement Slack interactive flows allowing users to create edit and cancel orders tied to a specific open run.
+- Enforce one active non canceled order per user per run rejecting or updating duplicates according to UX design.
+- Persist Order and UserPreference entities storing last confirmed order text per user per channel.
+- Update preferences when users confirm or reuse orders ensuring last_used_at reflects latest application.
+- Update the channel run message with accurate participant counts reflecting non canceled orders only.
+- Support a one click use last order action when a stored preference exists returning a helpful message when it does not.
+- Publish order_updated domain events for Kafka including run user and change type without sensitive free text bodies.
 
 ### Acceptance — REQ-004
-- Run creation emits `run_created` and optional `reminder_scheduled` events to Kafka using shared producer with retry/backoff and metrics for failures.
-- Reminder scheduler consumes events, calculates trigger time from pickup minus channel offset, and persists pending reminders to avoid duplicates.
-- When trigger fires, runner DM and optional channel “last call” message are sent, acknowledging success/failure in Kafka `reminder_sent` events.
-- Channel-level config toggles reminders and offset minutes, enforced before scheduling; disabled channels skip scheduler work with audit logs.
-- End-to-end reminder latency remains within ±1 minute of target, validated via metrics bucket or integration test harness.
+
+- Implement RunnerStats model tracking runs_served_count and last_run_at per user per channel.
+- Implement fairness algorithm selecting runner with minimal runs_served_count within configurable window and tie breaking by last_run_at.
+- Exclude ineligible users based on rules including previous immediate runner when they have not opted in to run again.
+- Integrate algorithm into run closing flow updating Run.runner_user_id and RunnerStats transactionally.
+- Ensure algorithm options such as fairness_window_runs and inclusion rules are configurable per channel within global bounds.
+- Post a concise explanation in the run summary describing why the runner was selected referencing fairness rules.
+- Provide deterministic behavior for identical inputs and log decisions with correlation IDs without exposing sensitive user data.
 
 ### Acceptance — REQ-005
-- Alembic (or equivalent) migrations create tables for User, Channel, Run, Order, UserPreference, RunnerStats, ChannelAdminAction with indices matching access patterns.
-- Repository layer enforces channel-scoped data retention (default 90 days, configurable) via scheduled purge hooks and guards against cross-channel leakage.
-- Seed defaults for reminder offsets and fairness window values are idempotent and configurable via environment variables sourced from Vault.
-- Transaction helper utilities expose unit-of-work boundaries for App slices, supporting optimistic concurrency and soft deletes where needed.
-- Unit tests cover CRUD and retention logic against a Postgres test container, ensuring referential integrity and cascade expectations.
+
+- When a run is created with pickup_time schedule reminder jobs according to channel reminder_offset_minutes configuration.
+- Represent scheduled reminders as Kafka events or durable jobs including run identifier due time and reminder type.
+- Implement Kafka consumer or scheduler that sends DM reminders to runner and optional last call messages at due times.
+- Ensure reminders respect per channel enable disable flags and do not fire when reminders are turned off before due time.
+- Handle drift so runner reminders are delivered within plus or minus one minute of target time under normal load.
+- Guarantee idempotency so duplicate reminder events do not produce duplicate Slack messages to users.
+- Emit reminder_sent events and metrics to support monitoring of reminder success and failures.
 
 ### Acceptance — REQ-006
-- `/coffee admin` slash command verifies Slack user role or allowlist before showing interactive admin menu; unauthorized requests return polite denial.
-- Channel enable/disable toggles stored flag, logs `ChannelAdminAction`, and updates cached state so `/coffee` respects status immediately.
-- Admins can update reminder offset, fairness window, and retention values within global bounds; invalid inputs prompt inline validation errors.
-- Data reset workflow deletes or anonymizes runs, orders, preferences, and runner stats for the channel, emits audit log, and communicates outcome in Slack.
-- All admin actions surface confirmation messages with changed values and are queryable via repository methods for audits.
+
+- Implement `/coffee admin` command and interactive admin UI accessible only to authorized channel admins or owners.
+- Validate admin authorization using Slack roles or configured admin user IDs returning clear denial messages when unauthorized.
+- Allow admins to configure channel level settings including enable disable reminder offsets fairness window and retention.
+- Persist Channel configuration changes and write ChannelAdminAction audit records describing action type details admin and timestamp.
+- Implement channel data reset that removes or anonymizes Run Order UserPreference and RunnerStats records for that channel.
+- Ensure data reset operations do not affect other channels and do not break schema or future operations.
+- Provide confirmation and summary messages in Slack after each admin action describing what changed and any impact.
 
 ### Acceptance — REQ-007
-- Service startup loads Slack tokens, signing secret, DB creds from Vault once, never logs them, and refreshes if rotation signals occur.
-- Ory/OIDC validation middleware ensures internal calls possess required scopes before hitting business handlers; failures return structured 401 logs.
-- Kong ingress contract documented and validated via integration smoke test ensuring correct paths, timeouts, and Slack IP allowlists.
-- Prometheus `/metrics` endpoint exposes counters and histograms for runs, interactions, errors, reminder timings, with labels aligned to SPEC.
-- Liveness/readiness probes check core loops, DB, Kafka, and Vault connectivity; structured JSON logging attaches correlation IDs and severity fields.
+
+- Expose Prometheus metrics endpoint including counters for runs started completed failed and request types from Slack.
+- Implement histograms for run duration and response latency for slash commands and interactive actions supporting P95 calculations.
+- Implement structured JSON logging including correlation IDs run IDs channel IDs and error categories but not secrets or full texts.
+- Provide consistent error handling middleware translating internal exceptions into user safe Slack messages with recovery guidance.
+- Record metrics and logs for error types enabling calculation of critical error rates and detection of degraded dependencies.
+- Ensure metrics endpoint protected appropriately but accessible to Prometheus according to on prem network standards.
+- Validate logs and metrics in a test environment to confirm they satisfy pilot observability requirements.
+
+### Acceptance — REQ-008
+
+- Design SQL schema for all entities in SPEC including keys indexes foreign keys and enumerated statuses.
+- Implement migration scripts compatible with chosen migration tool enabling repeatable idempotent migrations across environments.
+- Provide database access layer creating pooled connections using credentials from Vault with health checks for readiness probes.
+- Implement repository interfaces for User Channel Run Order UserPreference RunnerStats ChannelAdminAction with CRUD methods.
+- Enforce referential integrity via foreign keys and application checks ensuring deletions or resets maintain consistency.
+- Add minimal performance indexes to support expected query patterns including recent runs per channel and stats lookups.
+- Document schema and migration usage for platform teams including rollback strategy for early pilot issues.
+
+### Acceptance — REQ-009
+
+- Define Kafka topics for coffeebuddy.run.events and coffeebuddy.reminder.events with appropriate partitions and retention settings.
+- Implement producer wrapper providing type safe publishing for domain events with standardized keys headers and error handling.
+- Implement consumer abstraction supporting subscription to reminder and run events with offset management and graceful shutdown.
+- Configure retry and dead letter handling strategy for failed event processing aligned with enterprise Kafka practices.
+- Ensure producers and consumers expose metrics for publish failures lag and processing errors for observability.
+- Provide configuration for topic names brokers and security using environment variables or config files loaded via Vault.
+- Validate local and test environment operation with mock or shared Kafka cluster demonstrating end to end event flows.
+
+### Acceptance — REQ-010
+
+- Package CoffeeBuddy as a Python 3.12 container with health endpoints readiness and liveness implemented.
+- Provide Kubernetes manifests or Helm templates for Deployment Service ConfigMap and secrets integration with Vault.
+- Configure Kong route to expose Slack endpoints over HTTPS with Slack IP restrictions and request size limits as needed.
+- Integrate Ory OIDC for any internal calls made by CoffeeBuddy following organization patterns and token handling rules.
+- Expose Prometheus scrape configuration for the service using standard annotations or ServiceMonitor resources.
+- Document deployment steps including environment variables required DNS and routing assumptions and Slack app configuration.
+- Validate that no public cloud dependencies are introduced and all connectivity is via on prem components and Slack.
 
 ## Dependency Graph
 
-- REQ-001 -> REQ-005
-- REQ-002 -> REQ-001, REQ-005
-- REQ-003 -> REQ-001, REQ-002, REQ-005
-- REQ-004 -> REQ-001, REQ-005
-- REQ-005 -> (none)
-- REQ-006 -> REQ-005
-- REQ-007 -> REQ-005
+- REQ-001 -> REQ-007, REQ-010
+- REQ-002 -> REQ-008
+- REQ-003 -> REQ-001, REQ-002, REQ-007
+- REQ-004 -> REQ-002, REQ-003, REQ-008
+- REQ-005 -> REQ-002, REQ-007, REQ-009
+- REQ-006 -> REQ-001, REQ-002, REQ-003, REQ-008
+- REQ-007 -> REQ-010
+- REQ-008 -> REQ-010
+- REQ-009 -> REQ-010
+- REQ-010 -> (no dependencies)
 
 ## Iteration Strategy
 
-1. **Batch 1 (S, dependencies cleared):** REQ-005 (Infra foundations) + REQ-007 (platform hooks) to unblock application code. Confidence ±0.5 batch.
-2. **Batch 2 (M):** REQ-001 and REQ-002 to enable core run lifecycle and ordering UX atop shared repositories. Confidence ±1 batch.
-3. **Batch 3 (M):** REQ-003 and REQ-004 finishing fairness and reminders; requires stable data/events. Confidence ±1 batch.
-4. **Batch 4 (S):** REQ-006 admin tooling to finalize governance. Confidence ±0.5 batch.
+- Batch 1 (foundations, Infra focus, size M):
+  - REQ-010, REQ-008, REQ-009, REQ-007
+  - Goal: running service skeleton on Kubernetes with DB, Kafka, metrics wired but minimal business logic.
+- Batch 2 (core run lifecycle and Slack shell, size M):
+  - REQ-001, REQ-002
+  - Goal: start a run via Slack and persist basic run records with observability.
+- Batch 3 (orders, preferences, fairness, size L):
+  - REQ-003, REQ-004
+  - Goal: full run lifecycle with orders and fair runner assignment including summary posts.
+- Batch 4 (reminders and admin, size M):
+  - REQ-005, REQ-006
+  - Goal: configurable reminders and admin tooling including data reset and enable/disable.
+
+Confidence: ±1 batch for completion depending on infra readiness and Slack approval timing.
 
 ## Test Strategy
 
-- **REQ-005/007:** Unit tests on repositories, retention jobs, secret loading mocks; integration tests using Postgres container, Vault/Kong stubs; static analysis for migrations.
-- **REQ-001/002:** Unit tests for Slack handlers, signature verification, command parsing; integration tests hitting Slack mock server verifying 2s SLA; concurrency tests for order edits.
-- **REQ-003:** Deterministic fairness unit tests, DB transaction integration tests, Slack summary snapshot tests.
-- **REQ-004:** Kafka contract tests with embedded broker, reminder timing tests, DM sending mocks verifying offsets.
-- **REQ-006:** Admin command handler tests, permission matrix tests, data reset integration verifying cascades.
-- **Batch-level:** End-to-end scripted scenario (start → orders → close) plus metrics scrape verification; non-functional tests for P95 latency.
+- Per REQ:
+  - Unit tests for domain logic in runs, orders, fairness, reminders, admin, observability helpers.
+  - Unit tests for HTTP handlers using Slack payload fixtures and signature verification stubs.
+  - Repository tests against a Postgres test instance or container validating schema and transactions.
+  - Kafka integration tests using test topics or embedded cluster for producer and consumer wrappers.
+- Per batch:
+  - Batch 1: health checks, DB connectivity, Kafka connectivity, metrics exposure smoke tests.
+  - Batch 2: end to end Slack command simulation from HTTP ingress to DB persistence.
+  - Batch 3: E2E flows for start run, submit orders, close run, verify fairness and summaries.
+  - Batch 4: E2E flows for reminders timing and admin configuration including data reset behavior.
+- Cross cutting:
+  - Performance tests for slash commands and interactions verifying P95 latency under pilot load.
+  - Security checks for secrets handling, log redaction, and Slack signature verification.
+  - Observability checks confirming metrics scraping and log structure.
 
 ## KIT Readiness (per REQ)
 
-- **REQ-001**
-  - Paths: `/runs/kit/REQ-001/src/app/slack/runs`, `/runs/kit/REQ-001/test`
-  - Root package `app.slack.runs`; reuse `app.shared.slack` from scaffolds.
-  - Commands: `pytest tests/slack/runs -m "not slow"`.
-  - KIT-functional: yes; Slack mock configs required via `.env.test`.
-  - API docs: `/runs/kit/REQ-001/test/api/slack-run.json`.
+Common structure:
 
-- **REQ-002**
-  - Paths: `/runs/kit/REQ-002/src/app/slack/orders`, `/runs/kit/REQ-002/test`
-  - Root namespace `app.slack.orders`; no new top-level packages.
-  - Commands: `pytest tests/slack/orders`.
-  - KIT-functional: yes; fixtures expect seeded runs/orders from REQ-001.
-  - API docs: `/runs/kit/REQ-002/test/api/order-modals.json`.
+- Source root: `/runs/kit/<REQ-ID>/src`
+- Test root: `/runs/kit/<REQ-ID>/test`
+- Python package root inside src: `coffeebuddy`
 
-- **REQ-003**
-  - Paths: `/runs/kit/REQ-003/src/app/slack/fairness`, `/runs/kit/REQ-003/test`
-  - Namespace `app.slack.fairness`; depends on repositories defined earlier.
-  - Commands: `pytest tests/slack/fairness`.
-  - KIT-functional: yes; fairness window config provided via `config/test.yaml`.
-  - API docs: `/runs/kit/REQ-003/test/api/summary-flow.json`.
+For all REQs, KIT-functional: yes, assuming access to minimal scaffolding and allowed libraries within constraints.
 
-- **REQ-004**
-  - Paths: `/runs/kit/REQ-004/src/app/kafka/reminders`, `/runs/kit/REQ-004/test`
-  - Namespace `app.kafka.reminders`; produce/consume utilities under `app.shared.events`.
-  - Commands: `pytest tests/kafka --embedded-broker`.
-  - KIT-functional: yes; docker-compose for Kafka at `/runs/kit/REQ-004/test/compose.yaml`.
-  - API docs: `/runs/kit/REQ-004/test/api/reminder-events.json`.
+- REQ-001:
+  - Root module: `coffeebuddy.api.slack`
+  - Files under `/runs/kit/REQ-001/src/coffeebuddy/api/slack`
+  - Tests under `/runs/kit/REQ-001/test/api/slack`
+  - Expects mock Slack request payloads and signature verification helpers.
+  - No external network calls in tests; Slack client mocked.
 
-- **REQ-005**
-  - Paths: `/runs/kit/REQ-005/src/data/persistence`, `/runs/kit/REQ-005/test`
-  - Namespace `data.persistence`; migrations under `data/persistence/migrations`.
-  - Commands: `pytest tests/data --db-url=postgresql://localhost:5432/test`.
-  - KIT-functional: yes; requires Postgres container spun up via `make db-up`.
-  - API docs: N/A (database focus).
+- REQ-002:
+  - Root module: `coffeebuddy.domain.runs`
+  - Files under `/runs/kit/REQ-002/src/coffeebuddy/domain`
+  - Tests under `/runs/kit/REQ-002/test/domain`
+  - Uses in memory or test Postgres via `coffeebuddy.infrastructure.db` contracts.
 
-- **REQ-006**
-  - Paths: `/runs/kit/REQ-006/src/app/slack/admin`, `/runs/kit/REQ-006/test`
-  - Namespace `app.slack.admin`; extends shared Slack utilities.
-  - Commands: `pytest tests/slack/admin`.
-  - KIT-functional: yes; admin allowlist fixture at `tests/fixtures/admin_users.json`.
-  - API docs: `/runs/kit/REQ-006/test/api/admin-flow.json`.
+- REQ-003:
+  - Root module: `coffeebuddy.domain.orders`
+  - Files under `/runs/kit/REQ-003/src/coffeebuddy/domain`
+  - Tests under `/runs/kit/REQ-003/test/domain`
+  - Reuses run models from REQ-002; imports not duplicated.
 
-- **REQ-007**
-  - Paths: `/runs/kit/REQ-007/src/infra/platform`, `/runs/kit/REQ-007/test`
-  - Namespace `infra.platform`; modules `secrets`, `auth`, `observability`.
-  - Commands: `pytest tests/infra`.
-  - KIT-functional: yes; requires mock Vault/Ory servers defined in `test/docker-compose.yaml`.
-  - API docs: `/runs/kit/REQ-007/test/api/probes.json`.
+- REQ-004:
+  - Root module: `coffeebuddy.domain.fairness`
+  - Files under `/runs/kit/REQ-004/src/coffeebuddy/domain`
+  - Tests under `/runs/kit/REQ-004/test/domain`
+  - Deterministic algorithm tests with controlled histories and configurations.
+
+- REQ-005:
+  - Root module: `coffeebuddy.domain.reminders`
+  - Files under `/runs/kit/REQ-005/src/coffeebuddy/domain`
+  - Tests under `/runs/kit/REQ-005/test/domain`
+  - Kafka interfaces mocked; time control via injected clock.
+  - Optional API documentation collection for Slack reminder endpoints under `/runs/kit/REQ-005/test/api`.
+
+- REQ-006:
+  - Root module: `coffeebuddy.domain.admin`
+  - Files under `/runs/kit/REQ-006/src/coffeebuddy/domain`
+  - Tests under `/runs/kit/REQ-006/test/domain`
+  - Slack admin flows tested with fixtures and DB reset operations on isolated schemas.
+
+- REQ-007:
+  - Root module: `coffeebuddy.observability`
+  - Files under `/runs/kit/REQ-007/src/coffeebuddy`
+  - Tests under `/runs/kit/REQ-007/test/observability`
+  - Metrics and logging tested using in process collectors and log capture.
+
+- REQ-008:
+  - Root module: `coffeebuddy.infrastructure.db`
+  - Files under `/runs/kit/REQ-008/src/coffeebuddy/infrastructure`
+  - Tests under `/runs/kit/REQ-008/test/infrastructure`
+  - Migrations executed in test containers; schema validation tests.
+
+- REQ-009:
+  - Root module: `coffeebuddy.infrastructure.kafka`
+  - Files under `/runs/kit/REQ-009/src/coffeebuddy/infrastructure`
+  - Tests under `/runs/kit/REQ-009/test/infrastructure`
+  - Kafka clients mocked or pointed to ephemeral local cluster.
+
+- REQ-010:
+  - Root module: `coffeebuddy.infrastructure.runtime`
+  - Files under `/runs/kit/REQ-010/src/coffeebuddy/infrastructure`
+  - Tests under `/runs/kit/REQ-010/test/infrastructure`
+  - Kubernetes manifests and configuration validated via schema or template tests rather than cluster deployment.
 
 ## Notes
 
-- **Assumptions:** Kafka topic provisioning handled outside KIT; plan assumes topics exist though REQ-004 validates contracts. Slack admin allowlist provided by ops. Vault paths standardized as `secret/data/coffeebuddy/*`.
-- **Risks:** Slack rate limits could delay interactive updates; mitigation via retry/backoff built into `app.shared.slack`. Reminder scheduling accuracy depends on cluster clock sync; ensure NTP monitoring.
-- **Mitigations:** Early dry-runs against dev Slack workspace; integrate lint/type checks (ruff, mypy) within python lane gate; document data reset impacts for compliance review.
+- Lanes detected from TECH_CONSTRAINTS:
+  - python (runtime: python@3.12, Kubernetes)
+  - sql (storage: postgres)
+  - kafka (messaging: kafka)
+  - infra (Kubernetes, Kong, Vault, Ory, Prometheus inferred from SPEC)
+- All REQs kept minimal and composable, targeting approximately a single focused implementation session each.
+- CI coverage target aligned with constraints: ≥80% unit test coverage for new code paths is expected per REQ.
+- No public cloud dependencies may be introduced; all infra integrations must assume on prem managed services.
+- Slack workspace and app approval are assumed but should be validated early; otherwise, plan execution may be blocked.
 
 PLAN_END
