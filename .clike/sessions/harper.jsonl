@@ -73,3 +73,5 @@
 {"ts":1764533725621,"mode":"harper","role":"system","content":"✔ KIT REQ-010 done — [echo] manual::gpt-5.1 :: KIT generation • [files] 14 • [text] 31 chars","model":"gpt-5.1","attachments":[]}
 {"ts":1764533839525,"mode":"harper","role":"user","content":"▶ KIT REQ-010 | mode=harper model=gpt-5.1-codex profile=— core=[\"SPEC.md\",\"PLAN.md\",\"TECH_CONSTRAINTS.yaml\"]","model":"gpt-5.1-codex","attachments":[]}
 {"ts":1764533990795,"mode":"harper","role":"system","content":"✔ KIT REQ-010 done — [echo] manual::gpt-5.1-codex :: KIT generation • [files] 26 • [text] 31 chars","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764534475214,"mode":"harper","role":"user","content":"▶ KIT REQ-008 | mode=harper model=gpt-5.1-codex profile=— core=[\"SPEC.md\",\"PLAN.md\",\"TECH_CONSTRAINTS.yaml\"]","model":"gpt-5.1-codex","attachments":[]}
+{"ts":1764534640876,"mode":"harper","role":"system","content":"✔ KIT REQ-008 done — [echo] manual::gpt-5.1-codex :: KIT generation • [files] 19 • [text] 31 chars","model":"gpt-5.1-codex","attachments":[]}

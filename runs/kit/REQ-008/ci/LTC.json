@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "req_id": "REQ-008",
+  "lane": "sql",
+  "tools": {
+    "tests": true,
+    "lint": false,
+    "types": false,
+    "security": false,
+    "build": false
+  },
+  "commands": {
+    "tests": "pytest -q runs/kit/REQ-008/test"
+  },
+  "cases": [
+    {
+      "name": "tests",
+      "run": "pytest -q runs/kit/REQ-008/test",
+      "cwd": ".",
+      "pip-file": "runs/kit/REQ-008/requirements.txt",
+      "expect": 0
+    }
+  ],
+  "reports": [
+    {
+      "kind": "junit",
+      "path": "runs/kit/REQ-008/reports/junit.xml",
+      "format": "junit-xml"
+    }
+  ],
+  "env": {
+    "TEST_DATABASE_URL": "postgresql://user:password@localhost:5432/coffeebuddy_test"
+  },
+  "normalize": [
+    {
+      "pattern": "([0-9]+\\.[0-9]+)s",
+      "replacement": "<duration>s"
+    }
+  ],
+  "gate_policy": {
+    "tests_pass": true,
+    "coverage_min": 0.8,
+    "security": {
+      "bandit_high": 0
+    }
+  },
+  "constraints_applied": [
+    "single_source_of_truth",
+    "pure_rendering",
+    "idempotent_migrations"
+  ]
+}

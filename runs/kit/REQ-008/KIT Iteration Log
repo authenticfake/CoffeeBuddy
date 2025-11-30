@@ -1,0 +1,8 @@
+- **Targeted REQ-ID(s)**: REQ-008 (per plan dependencies).  
+- **In Scope**: schema spec, migrations, seeds, SQLAlchemy models/session/repositories, migration + repository tests, CI docs/contracts.  
+- **Out of Scope**: domain logic (run lifecycle, Slack handlers), Kafka integration, application wiring beyond DB infrastructure.  
+- **How to run tests**: `pytest -q runs/kit/REQ-008/test` (set `TEST_DATABASE_URL` for Postgres shape tests).  
+- **Prerequisites**: Python 3.12, pip, Postgres accessible via `TEST_DATABASE_URL`/`DATABASE_URL`, `psql` CLI, optional Docker for ephemeral DB.  
+- **Dependencies and mocks**: Repository tests use SQLite in-memory for deterministic unit coverage; Postgres migration tests skip when `TEST_DATABASE_URL` missing (per infra constraint). No production-path fakes introduced.  
+- **Product Owner Notes**: Schema matches SPEC entities with extensibility for future REQs; seeds provide 10 pilot channels; repository APIs align with upcoming domain services.  
+- **RAG citations**: Reused structure and constraints from prior KIT snippets (`runs/kit/REQ-006/src/storage/sql/V0001.up.sql`, `runs/kit/REQ-006/src/storage/seed/seed.sql`, `runs/kit/REQ-006/src/coffeebuddy/infra/db/models.py`, `runs/kit/REQ-006/src/coffeebuddy/infra/db/session.py`) to maintain continuity.
