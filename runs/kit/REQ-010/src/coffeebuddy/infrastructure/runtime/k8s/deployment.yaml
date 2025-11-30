@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coffeebuddy
+  labels:
+    app: coffeebuddy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: coffeebuddy
+  template:
+    metadata:
+      labels:
+        app: coffeebuddy
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: coffeebuddy
+          image: coffeebuddy:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: COFFEEBUDDY_ENVIRONMENT
+              value: "prod"
+            - name: COFFEEBUDDY_HTTP_PORT
+              value: "8080"
+            - name: VAULT_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: coffeebuddy-vault
+                  key: vault_addr
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: coffeebuddy-vault
+                  key: vault_token
+            - name: ORY_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: coffeebuddy-config
+                  key: ory_base_url
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coffeebuddy
+  labels:
+    app: coffeebuddy
+spec:
+  selector:
+    app: coffeebuddy
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

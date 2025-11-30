@@ -17,7 +17,8 @@
         "Return clear guidance on invalid command syntax without exposing internal details",
         "Include correlation IDs on all request logs and responses where applicable",
         "Avoid logging Slack tokens signing secrets or full payload bodies"
-      },
+      ]
+      ,
       "dependsOn": ["REQ-007", "REQ-010"],
       "track": "App",
       "status": "open",
@@ -34,7 +35,7 @@
         "Associate new runs with appropriate User and Channel records",
         "Provide repository queries for latest runs per channel and status",
         "Emit run_created domain events ready for Kafka publishing"
-      },
+      ],
       "dependsOn": ["REQ-008"],
       "track": "App",
       "status": "open",
@@ -51,7 +52,7 @@
         "Persist UserPreference records storing last confirmed order per channel",
         "Update channel message participant counts accurately after changes",
         "Emit order_updated events suitable for Kafka without sensitive text"
-      },
+      ],
       "dependsOn": ["REQ-001", "REQ-002", "REQ-007"],
       "track": "App",
       "status": "open",
@@ -68,7 +69,7 @@
         "Exclude last runner unless opted in according to rules",
         "Integrate algorithm into run closing updating Run and RunnerStats",
         "Provide human readable explanation of runner choice in summary"
-      },
+      ],
       "dependsOn": ["REQ-002", "REQ-003", "REQ-008"],
       "track": "App",
       "status": "open",
@@ -85,7 +86,7 @@
         "Consume reminder events and send Slack DMs and last call messages",
         "Respect per channel reminder enable disable settings at execution",
         "Ensure reminder timing within plus minus one minute of target"
-      },
+      ],
       "dependsOn": ["REQ-002", "REQ-007", "REQ-009"],
       "track": "App",
       "status": "open",
@@ -102,7 +103,7 @@
         "Persist channel settings and retain audit trail for changes",
         "Implement channel scoped data reset honoring retention rules",
         "Communicate results of admin actions clearly in Slack messages"
-      },
+      ],
       "dependsOn": ["REQ-001", "REQ-002", "REQ-003", "REQ-008"],
       "track": "App",
       "status": "open",
@@ -119,7 +120,7 @@
         "Define error handling middleware for HTTP endpoints and background tasks",
         "Avoid logging secrets or unnecessary message contents in all paths",
         "Validate metrics and logs against pilot observability expectations"
-      },
+      ],
       "dependsOn": ["REQ-010"],
       "track": "App",
       "status": "open",
@@ -136,7 +137,7 @@
         "Provide connection pooling and health checks for Postgres access",
         "Implement repositories supporting domain operations efficiently",
         "Document schema and migration procedures for platform teams"
-      },
+      ],
       "dependsOn": ["REQ-010"],
       "track": "Infra",
       "status": "open",
@@ -153,7 +154,7 @@
         "Implement consumer abstraction with offset and error handling",
         "Expose metrics for Kafka publish failures lag and processing",
         "Validate event flows in test environment end to end"
-      },
+      ],
       "dependsOn": ["REQ-010"],
       "track": "Infra",
       "status": "open",
@@ -170,7 +171,7 @@
         "Configure Kong Vault Ory and Prometheus integration for service",
         "Ensure deployment uses only on prem resources and Slack",
         "Document deployment steps configuration and environment variables"
-      },
+      ],
       "dependsOn": [],
       "track": "Infra",
       "status": "open",

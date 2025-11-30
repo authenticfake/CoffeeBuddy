@@ -1,0 +1,66 @@
+{
+  "version": "1.0",
+  "req_id": "REQ-010",
+  "lane": "infra",
+  "env": {
+    "COFFEEBUDDY_ENVIRONMENT": "test",
+    "COFFEEBUDDY_HTTP_PORT": "8080"
+  },
+  "tools": {
+    "tests": "pytest",
+    "lint": "",
+    "types": "",
+    "security": "",
+    "build": "uvicorn"
+  },
+  "commands": {
+    "tests": "pytest -q runs/kit/REQ-010/test"
+  },
+  "cases": [
+    {
+      "name": "tests",
+      "run": "pytest -q runs/kit/REQ-010/test",
+      "cwd": ".",
+      "pip-file": "runs/kit/REQ-010/requirements.txt",
+      "expect": 0,
+      "timeout": 600
+    }
+  ],
+  "reports": [
+    {
+      "kind": "junit",
+      "path": "reports/junit-REQ-010.xml",
+      "format": "junit-xml"
+    },
+    {
+      "kind": "coverage",
+      "path": "reports/coverage-REQ-010.xml",
+      "format": "coverage-xml"
+    }
+  ],
+  "gate_policy": {
+    "tests_pass": true,
+    "coverage_min": 0.0,
+    "security": {
+      "bandit_high": 0
+    }
+  },
+  "normalize": {
+    "junit": "reports/junit-REQ-010.xml",
+    "coverage": "reports/coverage-REQ-010.xml"
+  },
+  "external_runner": null,
+  "constraints_applied": {
+    "runtime": "python@3.12",
+    "platform": "kubernetes",
+    "storage": [
+      "postgres"
+    ],
+    "messaging": [
+      "kafka"
+    ],
+    "observability": [
+      "prometheus"
+    ]
+  }
+}
