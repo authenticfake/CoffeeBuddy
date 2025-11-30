@@ -1,87 +1,82 @@
 # FINALIZE
-![Python](https://img.shields.io/badge/python-3.12-blue.svg) ![Docker](https://img.shields.io/badge/docker-ready-blue.svg) ![CLike](https://img.shields.io/badge/built%20with-CLike-green.svg)
 
-## Overview
-CoffeeBuddy is an on-prem Slack bot that orchestrates coffee runs end-to-end: slash command initiation, interactive order capture, fair runner assignment, reminders, and admin governance. It runs entirely inside the enterprise Kubernetes perimeter and integrates with Postgres, Kafka, Kong, Ory, Vault, and Prometheus.
+## Project Overview
+CoffeeBuddy is an on-prem Slack bot that orchestrates coffee runs from slash command through reminders. It runs on Python 3.12, persists state in Postgres, exchanges lifecycle events over Kafka, surfaces APIs through FastAPI behind Kong, and exposes Prometheus metrics for SRE teams. Runner assignment follows transparent fairness rules, reminders are scheduled through Kafka-driven jobs, and admin commands manage per-channel policy.
 
-## Architecture
-```mermaid
-flowchart LR
-    Slack -->|Slash & Interactions| Kong
-    Kong --> CoffeeBuddy[(CoffeeBuddy API)]
-    CoffeeBuddy -->|ORM| Postgres
-    CoffeeBuddy -->|Events| Kafka
-    CoffeeBuddy --> Vault
-    CoffeeBuddy --> Prometheus
-    CoffeeBuddy --> Ory
-    CoffeeBuddy -->|DMs & Summaries| Slack
+## Badges
+- ![CLike](https://img.shields.io/badge/pipeline-CLike-blue.svg)
+- ![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)
+- ![FastAPI](https://img.shields.io/badge/framework-FastAPI-009688.svg)
+- ![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg)
+- ![Kafka](https://img.shields.io/badge/messaging-Kafka-231F20.svg)
+- ![Postgres](https://img.shields.io/badge/db-Postgres-336791.svg)
+
+## Architecture Sketch
+```
+Slack slash commands → Kong → FastAPI service (coffeebuddy)
+FastAPI service ↔ Postgres (runs, orders, preferences)
+FastAPI service ↔ Kafka (run/reminder events) ↔ Reminder worker
+Service ↔ Vault (secrets), Ory (OIDC), Prometheus (/metrics)
 ```
 
 ## Repository Layout
-- `src/coffeebuddy/api/slack_runs`: Slash command + interaction handlers (REQ-001).
-- `src/coffeebuddy/core/orders`: Order modal logic, preference persistence (REQ-002).
-- `src/coffeebuddy/core/runs` & `src/coffeebuddy/services/fairness`: Close/summary pipeline (REQ-003).
-- `src/coffeebuddy/jobs/reminders`: Kafka-driven reminder worker (REQ-004).
-- `src/coffeebuddy/api/admin`: Channel config and resets (REQ-005).
-- `src/coffeebuddy/infra/db`: SQLAlchemy models, migrations, schema loader (REQ-006).
-- `src/coffeebuddy/infra/kafka`: Topic definitions, producer/consumer utilities (REQ-007).
-- `tests/`: Pytest suites per module, plus integration stubs.
+- `src/coffeebuddy/api`: FastAPI routers for Slack slash commands, interactions, and admin UX.
+- `src/coffeebuddy/core`: Business logic for orders, runs, fairness, audit trails.
+- `src/coffeebuddy/jobs/reminders`: Kafka-driven reminder worker and scheduler glue.
+- `src/coffeebuddy/infra/db`: SQLAlchemy models, migrations, retention helpers.
+- `src/coffeebuddy/infra/kafka`: Topic definitions, producer/consumer utilities, metrics hooks.
+- `tests/`: Pytest suites covering handlers, fairness, reminders, admin commands, infra helpers.
+- `docs/`: Functional specs, plans, and Harper outputs.
 
 ## Quickstart
-### CLI (assumes Poetry + uvicorn)
+### CLI
 ```bash
-poetry install
-poetry run alembic upgrade head
-poetry run uvicorn coffeebuddy.api.main:app --host 0.0.0.0 --port 8080
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+export $(cat .env.example | xargs)  # or use direnv
+uvicorn coffeebuddy.app:app --host 0.0.0.0 --port 8000 --reload
+python -m coffeebuddy.jobs.reminders.worker
 ```
 
 ### Docker
 ```bash
-docker build -t coffeebuddy:local .
-docker run --env-file .env.local -p 8080:8080 coffeebuddy:local
-```
-
-### Compose (API + worker + Postgres + Kafka)
-```bash
-docker compose up --build
+docker compose build
+docker compose up coffeebuddy api kafka reminder-worker
+# Logs
 docker compose logs -f api
+# Teardown
 docker compose down -v
 ```
 
 ## Configuration
-| Variable | Required | Description | Default/Notes |
+| Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `SLACK_SIGNING_SECRET` | yes | Validates Slack payloads | Vault-injected |
-| `SLACK_BOT_TOKEN` | yes | Sends channel messages & DMs | Vault-injected |
-| `DATABASE_URL` | yes | Postgres connection string | `postgresql+psycopg://...` |
-| `KAFKA_BROKERS` | yes | Bootstrap servers for run/reminder topics | Comma-separated |
-| `KAFKA_CLIENT_ID` | yes | Identifies producer/consumer | Matches Ory service principal |
-| `REMINDER_WORKER_GROUP` | optional | Kafka consumer group id | `coffeebuddy-reminders` |
-| `CHANNEL_DEFAULT_REMINDER_MINUTES` | optional | Offset before pickup | `5` |
-| `CHANNEL_DEFAULT_RETENTION_DAYS` | optional | Data retention window | `90` |
-| `VAULT_ADDR` | yes | Vault endpoint for secrets | In-cluster |
-| `OIDC_ISSUER` | yes | Ory issuer for internal auth | Provided by platform |
-| `PROMETHEUS_METRICS_PORT` | optional | Metrics endpoint | `9464` (assumption based on platform template) |
+| `SLACK_SIGNING_SECRET` | yes | — | Verifies slash commands/interactions. |
+| `SLACK_BOT_TOKEN` | yes | — | Sends channel messages, DMs. |
+| `DATABASE_URL` | yes | — | Postgres DSN (Vault injected). |
+| `KAFKA_BROKERS` | yes | — | Bootstrap servers for events. |
+| `KAFKA_SASL_JAAS` | optional | — | SASL auth string if enabled. |
+| `REMINDER_CONCURRENCY` | optional | `4` | Max in-flight reminder jobs. |
+| `FAIRNESS_WINDOW_RUNS` | optional | `5` | Default fairness rolling window. |
+| `REMINDER_OFFSET_MINUTES` | optional | `5` | Default runner reminder offset. |
+| `PROMETHEUS_MULTIPROC_DIR` | optional | — | Enables multiprocess metrics. |
 
-### Services & Ports
-| Service | Port | Exposure |
-| --- | --- | --- |
-| CoffeeBuddy API (FastAPI) | 8080/tcp (assumption—override via `PORT`) | Kong routes to `/slack/events` |
-| Reminder Worker | n/a (Kafka consumer) | Runs as background deployment |
-| Prometheus Metrics | 9464/tcp | Cluster scrape (assumption) |
-
-## Acceptance Criteria
-- Slash command `/coffee` acknowledges runs in ≤2 seconds with validated syntax, optional pickup metadata, and persisted state.
-- Order modal enforces text limits, prevents duplicate active orders, and updates participant counts plus preferences.
-- Close control enforces authorization, applies fairness (lowest `runs_served_count`, no immediate repeat without opt-in), and posts channel + DM summaries.
-- Runs with pickup time enqueue reminder payloads and deliver runner DMs at `pickup_time - offset` within ±1 minute, skipping when reminders disabled.
-- Admin command honors channel permissions, persists config changes with audit rows, blocks runs when disabled, and performs data reset cleanly.
-
-## Testing & Quality
-- Unit/integration tests via `pytest -q`.
-- Static checks via `ruff check .` and `mypy src` (if configured in CI).
-- Coverage target ≥80% as per TECH_CONSTRAINTS.
-- Structured logs include correlation IDs; Prometheus scrapes `/metrics`.
+Services and Ports:
+- FastAPI service exposed internally on `:8000`.
+- Prometheus scrapes `:8000/metrics`.
+- Health probes: `:8000/health/live`, `:8000/health/ready`.
+- Kafka/ Postgres ports handled via platform defaults; see `docker-compose.yml`.
 
 ## Made with CLike
-This project follows the Harper CLike pipeline (IDEA→SPEC→PLAN→KIT) with eval-driven gates.
+This delivery follows the Harper pipeline (SPEC → PLAN → KIT) and passes KIT gates for all REQ IDs.
+
+## Testing & Quality
+- Run unit and integration tests: `pytest -q`.
+- Lint/type (if configured): `ruff check`, `mypy`.
+- CI enforces ≥80% coverage (tech constraints).
+- Manual sanity: start service, trigger `/coffee`, close run, verify Kafka reminder emission.
+
+## Assumptions
+- Vault injects secrets (.env is dev-only).
+- Kong route already configured to forward Slack traffic.
+- Kafka/Postgres locally provisioned via docker compose or corporate platform.
