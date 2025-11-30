@@ -1,8 +1,8 @@
 {
   "snapshot": {
     "total": 10,
-    "open": 8,
-    "in_progress": 2,
+    "open": 7,
+    "in_progress": 3,
     "done": 0,
     "deferred": 0,
     "progressPct": 0
@@ -184,7 +184,7 @@
         "REQ-010"
       ],
       "track": "Infra",
-      "status": "open",
+      "status": "in_progress",
       "lane": "kafka",
       "test_profile": "pytest-kafka-integration",
       "gate_policy_ref": "docs/harper/lane-guides/kafka.md"

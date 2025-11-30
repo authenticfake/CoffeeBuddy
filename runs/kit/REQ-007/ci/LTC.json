@@ -1,40 +1,52 @@
 {
   "version": "1.0",
   "req_id": "REQ-007",
-  "lane": "kafka",
-  "env": {
-    "KAFKA_BOOTSTRAP_SERVERS": "localhost:9092"
-  },
+  "lane": "app",
   "tools": {
-    "tests": true,
-    "lint": false,
-    "types": false,
-    "security": false,
-    "build": false
+    "tests": "pytest",
+    "lint": "",
+    "types": "",
+    "security": "",
+    "build": ""
   },
   "commands": {
-    "tests": "pytest -q runs/kit/REQ-007/test"
+    "tests": "pytest --junitxml=reports/junit.xml -q test"
   },
   "cases": [
     {
       "name": "tests",
-      "run": "pytest -q runs/kit/REQ-007/test",
-      "cwd": ".",
+      "run": "pytest --junitxml=reports/junit.xml -q test",
+      "cwd": "runs/kit/REQ-007",
       "pip-file": "runs/kit/REQ-007/requirements.txt",
       "expect": 0
     }
   ],
-  "reports": [],
+  "reports": [
+    {
+      "kind": "junit",
+      "path": "runs/kit/REQ-007/reports/junit.xml",
+      "format": "junit-xml"
+    }
+  ],
+  "env": {},
   "normalize": {
-    "tests_pass": "case:tests"
+    "tests": [
+      {
+        "source": "runs/kit/REQ-007/reports/junit.xml",
+        "kind": "junit"
+      }
+    ]
   },
   "gate_policy": {
-    "tests_pass": true
+    "tests_pass": true,
+    "coverage_min": 0.8,
+    "security": {
+      "bandit_high": 0
+    }
   },
   "external_runner": null,
-  "constraints_applied": [
-    "composition-first",
-    "prometheus-metrics",
-    "python@3.12"
-  ]
+  "constraints_applied": {
+    "python": "3.12",
+    "platform": "kubernetes"
+  }
 }
