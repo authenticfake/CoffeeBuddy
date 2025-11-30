@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "req_id": "REQ-004",
+  "lane": "App",
+  "tools": {
+    "tests": true,
+    "lint": false,
+    "types": false,
+    "security": false,
+    "build": false
+  },
+  "commands": {
+    "tests": "pytest -q runs/kit/REQ-004/test"
+  },
+  "cases": [
+    {
+      "name": "tests",
+      "run": "pytest -q runs/kit/REQ-004/test",
+      "cwd": ".",
+      "pip-file": "runs/kit/REQ-004/requirements.txt",
+      "expect": 0,
+      "timeout": 600
+    }
+  ],
+  "reports": [],
+  "env": {
+    "PYTHONPATH": "."
+  },
+  "normalize": {
+    "tests": "pytest"
+  },
+  "gate_policy": {
+    "tests_pass": true,
+    "coverage_min": 0.0,
+    "security": {
+      "bandit_high": 0
+    }
+  },
+  "external_runner": null,
+  "constraints_applied": [
+    "python@3.12",
+    "kafka messaging",
+    "prometheus metrics",
+    "on-prem only"
+  ]
+}

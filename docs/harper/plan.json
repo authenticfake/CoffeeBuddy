@@ -2,10 +2,10 @@
   "snapshot": {
     "total": 7,
     "open": 0,
-    "in_progress": 0,
-    "done": 7,
+    "in_progress": 1,
+    "done": 6,
     "deferred": 0,
-    "progressPct": 100
+    "progressPct": 86
   },
   "reqs": [
     {
@@ -80,7 +80,7 @@
         "REQ-007"
       ],
       "track": "App",
-      "status": "done",
+      "status": "in_progress",
       "lane": "python",
       "test_profile": "pytest-reminders-kafka",
       "gate_policy_ref": "docs/harper/lane-guides/python.md"

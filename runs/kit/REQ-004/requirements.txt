@@ -1,3 +1,11 @@
-slack-sdk==3.27.1
-pytest==8.2.2
-pytest-asyncio==0.23.7
+pytest
+```
+
+KIT Iteration Log
+- Targeted REQ-ID(s): REQ-004 (reminder scheduling & delivery). No other REQs modified.
+- Scope: Added scheduler, worker, and Slack sender modules plus unit tests/documents/LTC/HOWTO. Out of scope: wiring into run lifecycle, Kafka consumer bootstrap, DB-backed resolvers.
+- Tests: `pytest -q runs/kit/REQ-004/test`
+- Prerequisites: Python 3.12, pip, repo root as CWD; optional virtualenv.
+- Dependencies/mocks: Kafka publisher, Slack messenger, metrics objects are faked in tests to keep them deterministic; production paths still rely on real Kafka/Slack helpers.
+- Product Owner Notes: Scheduler currently invoked manually; next iteration should integrate with run-close flow and ensure context resolver taps existing repositories.
+- RAG citations: REQ-004 scheduler skeleton (`runs/kit/REQ-004/src/coffeebuddy/jobs/reminders/scheduler.py`), Kafka topic/model definitions (REQ-007 `topics.py`, `models.py`), Reminder worker metrics usage (REQ-007 `reminder_worker.py`).
