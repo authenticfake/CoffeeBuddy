@@ -1,24 +1,24 @@
 ## Lane Guide — infra
 
 ### Tools
-- tests: `pytest` for infra helpers, `kubectl` conformance scripts.
-- lint: `yamllint`, `kubeval` for manifests.
-- types: not applicable; enforce schema via JSONSchema.
-- security: `trivy config` for manifests, `vault-scan` for policy.
-- build: `helm template` or `kustomize build` packaging into GitOps repo.
+- tests: `pytest` for infra modules plus `tox` profile `infra`
+- lint: `ruff` for Python infra code, `yamllint` for manifests
+- types: `mypy` on `infra.platform`
+- security: `trivy config` for Kubernetes specs, `trivy fs` for images
+- build: `docker build -f Dockerfile` with hardened base image
 
 ### CLI Examples
-- Local: `kubectl apply --dry-run=client -f k8s/`.
-- Containerized: `docker run --rm -v $PWD:/infra registry.corp.local/ops/cli bash -c "kubeval k8s/*.yaml"`.
+- Local: `poetry run pytest tests/infra && trivy fs . && kubectl apply --dry-run=client -f k8s/`
+- Containerized: `docker compose run --rm infra bash -lc "pytest tests/infra && trivy config k8s"`
 
 ### Default Gate Policy
-- min coverage: all manifests validated; probes defined.
-- max criticals: 0 High from Trivy config/vault scans.
+- min coverage: 80% on infra modules
+- max criticals: 0 Trivy HIGH/CRITICAL, 0 failing readiness probes
 
 ### Enterprise Runner Notes
-- SonarQube: infra configs tracked as IaC project with policy checks.
-- Jenkins: infra lane uses service account to apply to dev cluster; artifacts stored under `infra-manifests.zip`.
+- SonarQube: import infra repo using Python + YAML analyzers
+- Jenkins: pipeline stages `vault-smoke`, `ory-smoke`, `k8s-probes`; artifacts stored in Artifactory with signed manifests
 
 ### TECH_CONSTRAINTS integration
-- air-gap: kubectl context targets on-prem clusters only; Vault only accessible via internal mesh.
-- registries: images sourced from `registry.corp.local` mirrors, Kong/Ory/Vault references pre-approved.
+- air-gap: base images from `harbor.corp.local/python-secure`; kubectl and helm binaries mirrored internally
+- registries: Vault secret paths accessible via on-prem endpoints; Ory tokens fetched from internal IdP only
