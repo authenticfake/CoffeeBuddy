@@ -1,13 +1,23 @@
-"""Run lifecycle orchestration helpers."""
+"""Run lifecycle orchestration (close & summarize)."""
 
-from .models import CloseRunRequest, CloseRunResult, ParticipantOrder, RunSummary
-from .service import CloseRunAuthorizer, CloseRunService
+from .models import (
+    CloseRunRequest,
+    CloseRunResult,
+    OrderSnapshot,
+    RunnerSnapshot,
+    RunSummary,
+)
+from .service import CloseRunService, RunCloseAuthorizer, RunEventPublisher
+from .summary import RunSummaryBuilder
 
 __all__ = [
-    "CloseRunAuthorizer",
     "CloseRunRequest",
     "CloseRunResult",
     "CloseRunService",
-    "ParticipantOrder",
+    "OrderSnapshot",
+    "RunCloseAuthorizer",
+    "RunEventPublisher",
+    "RunnerSnapshot",
     "RunSummary",
+    "RunSummaryBuilder",
 ]

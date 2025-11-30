@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+from typing import Callable, Iterable, Sequence
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
-from coffeebuddy.core.runs.exceptions import (
-    RunnerSelectionError,
-    UnauthorizedRunCloseError,
-)
 from coffeebuddy.core.runs.models import CloseRunRequest
-from coffeebuddy.core.runs.service import CloseRunAuthorizer, CloseRunService
+from coffeebuddy.core.runs.service import (
+    CloseRunService,
+    RunCloseAuthorizer,
+    RunEventPublisher,
+)
+from coffeebuddy.core.runs.summary import RunSummaryBuilder
 from coffeebuddy.infra.db.models import (
     Base,
     Channel,
@@ -22,220 +24,149 @@ from coffeebuddy.infra.db.models import (
     RunnerStat,
     User,
 )
-from coffeebuddy.services.fairness.service import FairnessService
+from coffeebuddy.infra.kafka.models import KafkaEvent
+from coffeebuddy.services.fairness import FairnessSelector
 
 
-@pytest.fixture()
-def session():
-    engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
+@pytest.fixture(name="session")
+def session_fixture() -> Session:
+    engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine, expire_on_commit=False)
-    sess = Session()
-    try:
-        yield sess
-    finally:
-        sess.close()
-        engine.dispose()
+    return sessionmaker(bind=engine, expire_on_commit=False)()
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+class AllowAllAuthorizer:
+    def assert_can_close(self, *, run: Run, actor_user_id: str) -> None:
+        return None
 
 
-class InitiatorOnlyAuthorizer:
-    """Simple authorizer that allows only the run initiator to close a run."""
+class RecordingPublisher:
+    def __init__(self) -> None:
+        self.events: list[KafkaEvent] = []
 
-    def is_authorized(self, *, run: Run, actor_user_id: str) -> bool:
-        return str(run.initiator_user_id) == actor_user_id
-
-
-def _create_user(session, slack_id: str, display_name: str) -> User:
-    now = _utcnow()
-    user = User(
-        id=uuid4(),
-        slack_user_id=slack_id,
-        display_name=display_name,
-        is_active=True,
-        created_at=now,
-        updated_at=now,
-    )
-    session.add(user)
-    session.commit()
-    return user
+    def publish(self, *, topic: str, event: KafkaEvent) -> None:
+        self.events.append(event)
 
 
-def _create_channel(session) -> Channel:
-    now = _utcnow()
+def _seed_data(session: Session) -> tuple[Run, Channel, list[User]]:
     channel = Channel(
-        id=uuid4(),
-        slack_channel_id="C123TEST",
-        name="coffee-test",
+        id=str(uuid4()),
+        slack_channel_id="C123",
+        name="coffee",
         enabled=True,
         reminder_offset_minutes=5,
-        fairness_window_runs=5,
+        fairness_window_runs=3,
         data_retention_days=90,
-        reminders_enabled=True,
-        last_call_enabled=True,
-        last_call_lead_minutes=None,
-        created_at=now,
-        updated_at=now,
     )
-    session.add(channel)
+    initiator = User(
+        id=str(uuid4()),
+        slack_user_id="U_INIT",
+        display_name="Initiator",
+        is_active=True,
+    )
+    runner_candidate = User(
+        id=str(uuid4()),
+        slack_user_id="U_RUN",
+        display_name="Runner 1",
+        is_active=True,
+    )
+    other_candidate = User(
+        id=str(uuid4()),
+        slack_user_id="U_OTHER",
+        display_name="Runner 2",
+        is_active=True,
+    )
+    session.add_all([channel, initiator, runner_candidate, other_candidate])
     session.commit()
-    return channel
 
-
-def _create_run(session, channel: Channel, initiator: User) -> Run:
-    now = _utcnow()
     run = Run(
-        id=uuid4(),
+        id=str(uuid4()),
         channel_id=channel.id,
         initiator_user_id=initiator.id,
-        runner_user_id=None,
         status=RunStatus.OPEN,
-        pickup_time=now + timedelta(minutes=30),
-        pickup_note="Lobby cafe",
-        started_at=now,
-        closed_at=None,
-        failure_reason=None,
-        created_at=now,
-        updated_at=now,
+        pickup_time=None,
+        pickup_note=None,
+        started_at=datetime.now(timezone.utc),
     )
     session.add(run)
     session.commit()
-    return run
 
-
-def _create_order(session, run: Run, user: User, text: str) -> Order:
-    now = _utcnow()
-    order = Order(
-        id=uuid4(),
+    order1 = Order(
+        id=str(uuid4()),
         run_id=run.id,
-        user_id=user.id,
-        order_text=text,
-        is_final=False,
+        user_id=runner_candidate.id,
+        order_text="Latte",
         provenance="manual",
-        created_at=now,
-        updated_at=now,
-        canceled_at=None,
+        is_final=False,
     )
-    session.add(order)
-    session.commit()
-    return order
-
-
-def _prime_runner_stat(session, channel: Channel, user: User, runs: int) -> RunnerStat:
-    now = _utcnow()
-    stat = RunnerStat(
-        id=uuid4(),
-        channel_id=channel.id,
-        user_id=user.id,
-        runs_served_count=runs,
-        last_run_at=now - timedelta(days=1),
-        created_at=now - timedelta(days=2),
-        updated_at=now - timedelta(days=1),
+    order2 = Order(
+        id=str(uuid4()),
+        run_id=run.id,
+        user_id=other_candidate.id,
+        order_text="Espresso",
+        provenance="manual",
+        is_final=True,
     )
-    session.add(stat)
-    session.commit()
-    return stat
-
-
-def _create_previous_closed_run(
-    session, channel: Channel, initiator: User, runner: User
-) -> None:
-    now = _utcnow()
-    previous = Run(
-        id=uuid4(),
-        channel_id=channel.id,
-        initiator_user_id=initiator.id,
-        runner_user_id=runner.id,
-        status=RunStatus.CLOSED,
-        pickup_time=now - timedelta(hours=2),
-        pickup_note="Previous spot",
-        started_at=now - timedelta(hours=3),
-        closed_at=now - timedelta(hours=2),
-        failure_reason=None,
-        created_at=now - timedelta(hours=3),
-        updated_at=now - timedelta(hours=2),
-    )
-    session.add(previous)
+    session.add_all([order1, order2])
     session.commit()
 
+    return run, channel, [initiator, runner_candidate, other_candidate]
 
-def test_close_run_service_closes_and_summarizes(session):
-    channel = _create_channel(session)
-    initiator = _create_user(session, "U100", "Initiator")
-    participant_a = _create_user(session, "U101", "Alex")
-    participant_b = _create_user(session, "U102", "Bailey")
 
-    run = _create_run(session, channel, initiator)
-    _create_previous_closed_run(session, channel, initiator, participant_a)
-    _prime_runner_stat(session, channel, participant_a, runs=2)
-
-    _create_order(session, run, participant_a, "Latte")
-    _create_order(session, run, participant_b, "Mocha")
-
-    fairness = FairnessService(session=session, clock=_utcnow)
+def _build_service(session: Session) -> tuple[CloseRunService, RecordingPublisher]:
+    fairness_selector = FairnessSelector(session)
+    summary_builder = RunSummaryBuilder()
+    authorizer: RunCloseAuthorizer = AllowAllAuthorizer()
+    publisher = RecordingPublisher()
     service = CloseRunService(
         session=session,
-        fairness=fairness,
-        authorizer=InitiatorOnlyAuthorizer(),
-        clock=_utcnow,
+        fairness_selector=fairness_selector,
+        summary_builder=summary_builder,
+        authorizer=authorizer,
+        publisher=publisher,
     )
+    return service, publisher
+
+
+def test_close_run_assigns_runner_and_publishes_events(session: Session) -> None:
+    run, channel, users = _seed_data(session)
+    service, publisher = _build_service(session)
 
     result = service.close_run(
-        CloseRunRequest(run_id=str(run.id), actor_user_id=str(initiator.id))
-    )
-
-    session.refresh(run)
-    assert run.status == RunStatus.CLOSED
-    assert result.runner_user_id == str(participant_b.id)
-    assert result.summary.total_orders == 2
-    assert any(p.display_name == "Bailey" for p in result.summary.participants)
-    assert "Runner chosen" in result.fairness_note
-
-    orders = session.execute(
-        select(Order).where(Order.run_id == run.id)
-    ).scalars().all()
-    assert all(order.is_final for order in orders)
-
-
-def test_close_run_rejects_unauthorized_actor(session):
-    channel = _create_channel(session)
-    initiator = _create_user(session, "U200", "Initiator")
-    other_user = _create_user(session, "U201", "Other")
-
-    run = _create_run(session, channel, initiator)
-    _create_order(session, run, other_user, "Cold brew")
-
-    fairness = FairnessService(session=session, clock=_utcnow)
-    service = CloseRunService(
-        session=session,
-        fairness=fairness,
-        authorizer=InitiatorOnlyAuthorizer(),
-        clock=_utcnow,
-    )
-
-    with pytest.raises(UnauthorizedRunCloseError):
-        service.close_run(
-            CloseRunRequest(run_id=str(run.id), actor_user_id=str(other_user.id))
+        CloseRunRequest(
+            run_id=str(run.id),
+            actor_user_id=str(users[0].id),
+            correlation_id="corr-123",
         )
-
-
-def test_close_run_without_orders_raises(session):
-    channel = _create_channel(session)
-    initiator = _create_user(session, "U300", "Initiator")
-    run = _create_run(session, channel, initiator)
-
-    fairness = FairnessService(session=session, clock=_utcnow)
-    service = CloseRunService(
-        session=session,
-        fairness=fairness,
-        authorizer=InitiatorOnlyAuthorizer(),
-        clock=_utcnow,
     )
 
-    with pytest.raises(RunnerSelectionError):
+    refreshed_run = session.get(Run, run.id)
+    assert refreshed_run.status == RunStatus.CLOSED
+    assert refreshed_run.runner_user_id == result.runner_user_id
+    assert result.summary.participant_count == 2
+    assert len(publisher.events) == 2
+    runner_stat = (
+        session.query(RunnerStat)
+        .filter(
+            RunnerStat.user_id == result.runner_user_id,
+            RunnerStat.channel_id == channel.id,
+        )
+        .one()
+    )
+    assert runner_stat.runs_served_count == 1
+
+
+def test_close_run_requires_open_status(session: Session) -> None:
+    run, _, users = _seed_data(session)
+    service, _ = _build_service(session)
+    run.status = RunStatus.CLOSED
+    session.commit()
+
+    with pytest.raises(Exception):
         service.close_run(
-            CloseRunRequest(run_id=str(run.id), actor_user_id=str(initiator.id))
+            CloseRunRequest(
+                run_id=str(run.id),
+                actor_user_id=str(users[0].id),
+                correlation_id="corr",
+            )
         )

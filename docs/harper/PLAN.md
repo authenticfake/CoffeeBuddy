@@ -44,6 +44,9 @@ zation helpers<br/>Vault-sourced DB credentials power resilient session factory<
 | REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | done |
 
 zation helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | done |
+| REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | done |
+
+zation helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | done |
 | REQ-007 | Kafka topics and reminder worker plumbing | Kafka topics defined with partitions replication and retention notes<br/>Producer consumer utilities enforce payload schemas and IDs<br/>Reminder worker harness documented with graceful shutdown<br/>Topic ACL needs captured for platform coordination<br/>Kafka connectivity metrics exported for Prometheus |  | Infra | in_progress |
 
 zation helpers<br/>Vault-sourced DB credentials power resilient session factory<br/>Migration command documented and idempotent for CI |  | Infra | done |

@@ -1,6 +1,5 @@
-"""Fairness services for runner assignment."""
+"""Fairness utilities for runner assignment."""
 
-from .models import FairnessDecision
-from .service import FairnessService
+from .selector import FairnessSelector, RunnerSelection
 
-__all__ = ["FairnessDecision", "FairnessService"]
+__all__ = ["FairnessSelector", "RunnerSelection"]

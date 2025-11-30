@@ -2,54 +2,63 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Tuple
+from typing import Sequence
 
 
 @dataclass(frozen=True, slots=True)
 class CloseRunRequest:
-    """DTO describing a close-run attempt from Slack or other interface."""
+    """Command payload for closing a run."""
 
     run_id: str
     actor_user_id: str
-    allow_immediate_repeat: bool = False
+    correlation_id: str
+    allow_consecutive_runner: bool = False
 
 
 @dataclass(frozen=True, slots=True)
-class ParticipantOrder:
-    """Snapshot of a participant order at run close."""
+class RunnerSnapshot:
+    """Resolved runner identity."""
 
     user_id: str
+    slack_user_id: str
+    display_name: str
+
+
+@dataclass(frozen=True, slots=True)
+class OrderSnapshot:
+    """Immutable snapshot of an order at run closure."""
+
+    order_id: str
+    user_id: str
+    slack_user_id: str
     display_name: str
     order_text: str
     provenance: str
+    submitted_at: datetime
+    confirmed: bool
 
 
 @dataclass(frozen=True, slots=True)
 class RunSummary:
-    """Aggregated view of the run suitable for Slack channel + DM payloads."""
+    """Structured summary shared with Slack channel & runner."""
 
     run_id: str
     channel_id: str
     channel_name: str
-    runner_user_id: str
-    runner_display_name: str
     pickup_time: datetime | None
     pickup_note: str | None
-    participants: Tuple[ParticipantOrder, ...]
-    total_orders: int
-    reminder_offset_minutes: int | None
-    reminders_enabled: bool | None
-    last_call_enabled: bool | None
-    closed_at: datetime
+    runner: RunnerSnapshot
+    participant_orders: tuple[OrderSnapshot, ...]
+    participant_count: int
+    reminder_offset_minutes: int
+    fairness_explanation: str
 
 
 @dataclass(frozen=True, slots=True)
 class CloseRunResult:
-    """Outcome returned by the close-run orchestrator."""
+    """Outcome of run closure."""
 
     run_id: str
-    channel_id: str
     runner_user_id: str
-    closed_at: datetime
     summary: RunSummary
-    fairness_note: str
+    events_emitted: Sequence[str]

@@ -1,21 +1,20 @@
-from __future__ import annotations
+"""Domain-specific errors for the run lifecycle."""
+
+class RunNotFoundError(Exception):
+    """Raised when the requested run does not exist."""
 
 
-class RunCloseError(Exception):
-    """Base error for run lifecycle operations."""
+class RunAlreadyClosedError(Exception):
+    """Raised when attempting to close a non-open run."""
 
 
-class RunNotFoundError(RunCloseError):
-    """Raised when the requested run identifier cannot be resolved."""
+class UnauthorizedRunClosureError(Exception):
+    """Raised when the actor lacks permission to close the run."""
 
 
-class RunNotOpenError(RunCloseError):
-    """Raised when a run is not in an open state when an action requires it."""
+class ChannelDisabledError(Exception):
+    """Raised when the channel is disabled for CoffeeBuddy operations."""
 
 
-class UnauthorizedRunCloseError(RunCloseError):
-    """Raised when an actor attempts to close a run without required privileges."""
-
-
-class RunnerSelectionError(RunCloseError):
-    """Raised when a runner cannot be chosen according to fairness criteria."""
+class NoEligibleRunnerError(Exception):
+    """Raised when the fairness algorithm cannot find a runner."""

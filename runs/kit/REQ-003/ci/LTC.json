@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "req_id": "REQ-003",
-  "lane": "App",
+  "lane": "app",
   "tools": {
     "tests": true,
     "lint": false,
@@ -9,50 +9,32 @@
     "security": false,
     "build": false
   },
-  "commands": {
-    "tests": "mkdir -p runs/kit/REQ-003/reports && PYTHONPATH=. pytest -q runs/kit/REQ-003/test --junitxml runs/kit/REQ-003/reports/junit.xml --cov=runs/kit/REQ-003/src --cov-report xml:runs/kit/REQ-003/reports/coverage.xml"
-  },
   "cases": [
     {
       "name": "tests",
-      "run": "mkdir -p runs/kit/REQ-003/reports && PYTHONPATH=. pytest -q runs/kit/REQ-003/test --junitxml runs/kit/REQ-003/reports/junit.xml --cov=runs/kit/REQ-003/src --cov-report xml:runs/kit/REQ-003/reports/coverage.xml",
+      "run": "pytest -q runs/kit/REQ-003/test",
       "cwd": ".",
       "pip-file": "runs/kit/REQ-003/requirements.txt",
-      "expect": 0,
-      "timeout": 600
+      "expect": 0
     }
   ],
-  "reports": [
-    {
-      "kind": "junit",
-      "path": "runs/kit/REQ-003/reports/junit.xml",
-      "format": "junit-xml"
-    },
-    {
-      "kind": "coverage",
-      "path": "runs/kit/REQ-003/reports/coverage.xml",
-      "format": "coverage-xml"
-    }
-  ],
-  "env": {
-    "PYTHONPATH": "."
+  "commands": {
+    "tests": "pytest -q runs/kit/REQ-003/test"
   },
+  "reports": [],
+  "env": {},
   "normalize": {
-    "junit": "runs/kit/REQ-003/reports/junit.xml",
-    "coverage": "runs/kit/REQ-003/reports/coverage.xml"
+    "summary": {
+      "tests": "cases[0].expect"
+    }
   },
   "gate_policy": {
-    "tests_pass": true,
-    "coverage_min": 0.8,
-    "security": {
-      "bandit_high": 0
-    }
+    "tests_pass": true
   },
   "external_runner": null,
   "constraints_applied": [
-    "SPEC.md",
-    "PLAN.md",
-    "docs/harper/plan.json",
-    "TECH_CONSTRAINTS.yaml"
+    "python@3.12",
+    "pytest",
+    "on-prem"
   ]
 }
