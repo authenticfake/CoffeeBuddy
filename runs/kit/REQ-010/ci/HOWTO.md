@@ -1,220 +1,65 @@
-# HOWTO — REQ-010 Runtime Execution & CI
-
-This document explains how to run, test, and integrate the CoffeeBuddy
-runtime service introduced in REQ-010.
+# HOWTO — REQ-010 Runtime Execution
 
 ## Prerequisites
+- Python 3.12 with `pip`
+- Docker (for container build)
+- Access to on-prem Kubernetes, Kong, Vault, Ory, and Prometheus clusters
+- Slack app credentials stored in Vault
+- Kafka and Postgres endpoints reachable from cluster
 
-- Python 3.12 available on your PATH.
-- Recommended: virtual environment (venv).
-- Network access to Vault and Ory for full readiness behavior in
-  non-test environments (not required for unit tests).
-- For Kubernetes deployment:
-  - Access to a cluster.
-  - Ability to create Deployments, Services, and Kong resources.
-  - Existing Vault and Ory endpoints reachable from the cluster.
-
-## Local environment setup
-
+## Local Setup
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-pip install -r runs/kit/REQ-010/requirements.txt
-```
-
-Common issues:
-
-- If `python` points to a different version, use `python3.12` explicitly.
-- Ensure your shell is using the virtual environment before running
-  commands (check `which python` / `where python`).
-
-## Running the service locally
-
-```bash
-export COFFEEBUDDY_ENVIRONMENT=dev
-export COFFEEBUDDY_HTTP_PORT=8080
-# Optional: configure Vault and Ory if you want readiness to succeed
-# export VAULT_ADDR="https://vault.internal:8200"
-# export VAULT_TOKEN="..."
-# export ORY_BASE_URL="https://ory.internal"
-
-uvicorn coffeebuddy.infrastructure.runtime.app:create_app --factory --host 0.0.0.0 --port 8080
-```
-
-Endpoints:
-
-- `http://localhost:8080/health/live`
-- `http://localhost:8080/health/ready`
-- `http://localhost:8080/metrics`
-
-## Running tests
-
-From the repository root:
-
-```bash
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r runs/kit/REQ-010/requirements.txt
-
-pytest -q runs/kit/REQ-010/test
+export PYTHONPATH=$PWD/runs/kit/REQ-010/src
 ```
 
-The LTC (`runs/kit/REQ-010/ci/LTC.json`) declares:
+## Running Tests
+```bash
+mkdir -p runs/kit/REQ-010/reports
+PYTHONPATH=runs/kit/REQ-010/src pytest -q runs/kit/REQ-010/test --junitxml=runs/kit/REQ-010/reports/junit.xml
+```
 
-- Tool: `pytest`
-- Case: `tests` running `pytest -q runs/kit/REQ-010/test` with `cwd="."`.
+## Building the Image
+```bash
+cd runs/kit/REQ-010
+docker build -t coffeebuddy/runtime:0.1.0 -f src/Dockerfile .
+```
 
-## Enterprise CI / Runner Integration
-
-Most enterprise CI tools (Jenkins, GitLab CI, Azure DevOps, etc.) can
-execute the same commands defined in `LTC.json`:
-
-1. Ensure Python 3.12 and pip are available in the agent/container.
-2. Install dependencies:
-
+## Kubernetes Deployment
+1. Apply ConfigMap/Secrets/Vault policy:
    ```bash
-   pip install -r runs/kit/REQ-010/requirements.txt
+   kubectl apply -f src/infra/kubernetes/configmap.yaml
+   vault policy write coffeebuddy-runtime src/infra/vault/policy.hcl
+   ```
+2. Deploy workload:
+   ```bash
+   kubectl apply -f src/infra/kubernetes/deployment.yaml
+   kubectl apply -f src/infra/kubernetes/service.yaml
+   kubectl apply -f src/infra/kubernetes/servicemonitor.yaml
+   ```
+3. Configure Kong + Ory:
+   ```bash
+   kubectl apply -f src/infra/kong/service-route.yaml
+   kubectl apply -f src/infra/ory/client.yaml
    ```
 
-3. Run tests:
+## Environment Variables
+Set via ConfigMap/Secret:
+- `SERVICE_NAME`, `SERVICE_ENV`, `SERVICE_PORT`, `SERVICE_VERSION`
+- `SLACK_SIGNING_SECRET`, `SLACK_BOT_TOKEN`
+- `DATABASE_URL`
+- `KAFKA_BROKERS`, `KAFKA_SECURITY_PROTOCOL`
+- `VAULT_ADDR`, `VAULT_ROLE`, `VAULT_TOKEN_PATH`
+- `ORY_ISSUER_URL`, `ORY_AUDIENCE`, `ORY_CLIENT_ID`
+- `METRICS_PATH`, `PROMETHEUS_MULTIPROC_DIR` (optional)
 
-   ```bash
-   pytest -q runs/kit/REQ-010/test
-   ```
-
-4. Optionally enable JUnit and coverage reporting:
-
-   ```bash
-   pytest --junitxml=reports/junit-REQ-010.xml --cov=coffeebuddy --cov-report=xml:reports/coverage-REQ-010.xml runs/kit/REQ-010/test
-   ```
-
-Configure your CI to collect:
-
-- `reports/junit-REQ-010.xml` (test results)
-- `reports/coverage-REQ-010.xml` (coverage)
-
-These paths match the `reports` section of `LTC.json`.
-
-## Kubernetes deployment
-
-1. Build and push the CoffeeBuddy image:
-
-   ```bash
-   docker build -t registry.internal/coffeebuddy:REQ-010 .
-   docker push registry.internal/coffeebuddy:REQ-010
-   ```
-
-2. Edit `runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/k8s/deployment.yaml`:
-
-   - Set `image: registry.internal/coffeebuddy:REQ-010`.
-   - Ensure environment variable sources (`Secret`, `ConfigMap`) exist.
-
-3. Apply manifests:
-
-   ```bash
-   kubectl apply -f runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/k8s/deployment.yaml
-   ```
-
-4. (Optional) Deploy Kong route config:
-
-   ```bash
-   kubectl apply -f runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/kong/route.yaml
-   ```
-
-5. Verify pods:
-
-   ```bash
-   kubectl get pods -l app=coffeebuddy
-   kubectl describe pod <pod-name>
-   ```
-
-Readiness and liveness probes are configured to use
-`/health/ready` and `/health/live` respectively.
-
-## Prometheus & Observability
-
-The deployment manifest includes annotations:
-
-- `prometheus.io/scrape: "true"`
-- `prometheus.io/port: "8080"`
-- `prometheus.io/path: "/metrics"`
-
-Ensure your Prometheus operator or scraping configuration honors these
-annotations.
+## Enterprise Runner Notes
+- Jenkins: add pipeline stage running the LTC command from `ci/LTC.json`.
+- Sonar/Mend: not required for this REQ but add scanning stage before deploy if mandated.
 
 ## Troubleshooting
-
-- **Import errors (`ModuleNotFoundError: coffeebuddy...`)**
-  - Ensure you run commands from the repository root so that Python can
-    resolve the `runs/kit/REQ-010/src` tree via the default module
-    search path.
-  - Alternatively, set `PYTHONPATH`:
-
-    ```bash
-    export PYTHONPATH="$PWD/runs/kit/REQ-010/src:${PYTHONPATH:-}"
-    ```
-
-- **Readiness always failing (`vault`/`ory` unavailable)**
-  - Check that `VAULT_ADDR` / `ORY_BASE_URL` are set and reachable from
-    the pod.
-  - Verify TLS and internal DNS configuration for these hosts.
-
-- **Metrics not scraped**
-  - Confirm that the Prometheus deployment is configured to read pod
-    annotations.
-  - Ensure network policies (if any) allow Prometheus to reach the
-    CoffeeBuddy pods on port 8080.
-
-- **Timeouts on health endpoints**
-  - The HTTP clients for Vault and Ory use a 2-second timeout. Under
-    abnormal conditions you may see timeouts; Kubernetes will use these
-    failures for readiness decisions. Investigate underlying network or
-    service issues.
-
-```
-
----
-
-**KIT Iteration Log**
-
-- **Targeted REQ-ID(s)**: REQ-010 (runtime integration with Kubernetes, Kong, Vault, Ory, Prometheus). This is the foundational infra REQ per PLAN batch 1.
-- **In/Out of scope**:
-  - In scope: ASGI app factory, health endpoints, metrics endpoint, Vault/Ory health wiring, example K8s + Kong manifests, basic tests.
-  - Out of scope: DB/Kafka wiring, Slack endpoints, detailed logging/metrics (covered by later REQs).
-- **How to run tests**:
-  - `pip install -r runs/kit/REQ-010/requirements.txt`
-  - `pytest -q runs/kit/REQ-010/test`
-- **Prerequisites**:
-  - Python 3.12
-  - Optional: access to Kubernetes, Kong, Vault, Ory, Prometheus for runtime validation (not required for unit tests).
-- **Dependencies and mocks**:
-  - Production paths use real `httpx` HTTP clients for Vault/Ory.
-  - Tests inject fake `VaultClient` and `OryClient` implementations via the `create_app` factory to avoid network calls.
-- **Product Owner Notes**:
-  - Readiness currently requires both Vault and Ory to be healthy. If future requirements call for softer degradation (e.g., treat Ory as optional for some endpoints), we can extend the readiness logic while keeping the existing client abstractions.
-- **RAG citations**:
-  - SPEC.md: used for understanding health, Vault, Ory, and Prometheus requirements.
-  - PLAN.md (REQ-010 section): guided module placement under `coffeebuddy.infrastructure.runtime` and clarified that this REQ owns runtime/Kubernetes/Kong/Vault/Ory/Prometheus glue.
-  - TECH_CONSTRAINTS.yaml: confirmed Python 3.12 runtime and Prometheus observability expectations.
-
-```json
-{
-  "index": [
-    {
-      "req": "REQ-010",
-      "src": [
-        "runs/kit/REQ-010/src/coffeebuddy/__init__.py",
-        "runs/kit/REQ-010/src/coffeebuddy/infrastructure/__init__.py",
-        "runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/__init__.py",
-        "runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/settings.py",
-        "runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/clients.py",
-        "runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/app.py",
-        "runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/k8s/deployment.yaml",
-        "runs/kit/REQ-010/src/coffeebuddy/infrastructure/runtime/kong/route.yaml"
-      ],
-      "tests": [
-        "runs/kit/REQ-010/test/infrastructure/test_runtime_app.py"
-      ]
-    }
-  ]
-}
+- **Readiness failures**: ensure Vault token file exists at `VAULT_TOKEN_PATH` and Kafka broker list non-empty.
+- **Metrics scrape issues**: verify `ServiceMonitor` selector matches `app: coffeebuddy`.
+- **Import errors**: confirm `PYTHONPATH` includes `runs/kit/REQ-010/src` during local scripts/tests.

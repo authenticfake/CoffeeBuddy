@@ -2,13 +2,13 @@
 
 ## Plan Snapshot
 
-- **Counts:** 10 total / 10 open / 0 done / 0 deferred
+- **Counts:** total=10 / open=9 / in_progress=1 / done=0 / deferred=0
 - **Progress:** 0% complete
 - **Checklist:**
-  - [ ] SPEC aligned
-  - [ ] Prior REQ reconciled
-  - [ ] Dependencies mapped
-  - [ ] KIT-readiness per REQ confirmed
+  - [x] SPEC aligned
+  - [x] Prior REQ reconciled
+  - [x] Dependencies mapped
+  - [x] KIT-readiness per REQ confirmed
 
 ## Tracks & Scope Boundaries
 
@@ -105,14 +105,20 @@ Per-REQ ownership:
 
 ## REQ-IDs Table
 
-|ID|Title|Acceptance (≤3 bullets)|DependsOn [IDs]|Track|Status|
+| ID | Title | Acceptance | DependsOn | Track | Status |
 |---|---|---|---|---|---|
-|REQ-001|Slack slash command and interaction HTTP endpoints|Slash command endpoint handles valid requests within latency target<br>Interactive endpoint processes button and modal callbacks<br>Invalid commands return helpful usage guidance|REQ-007, REQ-010|App|open|
-|REQ-002|Run lifecycle domain model and persistence|Run entities persisted with open closed canceled failed statuses<br>Run creation linked to channel and initiator user<br>Runs queriable by channel and recent activity|REQ-008|App|open|
-|REQ-003|Order collection and preference persistence UX|Users submit edit cancel orders per run without duplicates<br>Last confirmed order stored per user channel<br>Channel message shows accurate participant count|REQ-001, REQ-002, REQ-007|App|open|
-|REQ-004|Fair runner assignment algorithm and transparency|Runner stats maintained per user channel<br>Algorithm chooses user with lowest recent runs not repeating unfairly<br>Summary explains runner choice briefly|REQ-002, REQ-003, REQ-008|App|open|
-|REQ-005|Reminder scheduling and Kafka driven execution|Reminders scheduled when pickup time set and channel enabled<br>Kafka events trigger runner and channel reminders<br>Reminders respect per channel enable disable settings|REQ-002, REQ-007, REQ-009|App|open|
-|REQ-006|Admin configuration commands and channel data reset|Admin command restricted to authorized users<br>Channel config updates persisted and auditable<br>Data reset removes channel historical impact on fairness|REQ-001, REQ-002, REQ-003, REQ-008|App|open|
+| REQ-001 | Slack slash command and interaction HTTP endpoints | Handle Slack slash command POST with signature verification and latency within target<br/>Handle Slack interactive callbacks updating messages and state appropriately<br/>Return clear guidance on invalid command syntax without exposing internal details<br/>Include correlation IDs on all request logs and responses where applicable<br/>Avoid logging Slack tokens signing secrets or full payload bodies | REQ-007, REQ-010 | App | open |
+| REQ-002 | Run lifecycle domain model and persistence | Define User Channel Run models matching SPEC logical schema<br/>Persist Run records with correct status timestamps and relationships<br/>Associate new runs with appropriate User and Channel records<br/>Provide repository queries for latest runs per channel and status<br/>Emit run_created domain events ready for Kafka publishing | REQ-008 | App | open |
+| REQ-003 | Order collection and preference persistence UX | Allow users to create edit and cancel orders for an open run<br/>Enforce one active order per user per run in persistence layer<br/>Persist UserPreference records storing last confirmed order per channel<br/>Update channel message participant counts accurately after changes<br/>Emit order_updated events suitable for Kafka without sensitive text | REQ-001, REQ-002, REQ-007 | App | open |
+| REQ-004 | Fair runner assignment algorithm and transparency | Maintain RunnerStats per user per channel with counts and timestamps<br/>Implement fairness algorithm using configurable recent window parameters<br/>Exclude last runner unless opted in according to rules<br/>Integrate algorithm into run closing updating Run and RunnerStats<br/>Provide human readable explanation of runner choice in summary | REQ-002, REQ-003, REQ-008 | App | open |
+| REQ-005 | Reminder scheduling and Kafka driven execution | Schedule reminders when runs have pickup_time and reminders enabled<br/>Represent reminders as durable Kafka events with due timestamps<br/>Consume reminder events and send Slack DMs and last call messages<br/>Respect per channel reminder enable disable settings at execution<br/>Ensure reminder timing within plus minus one minute of target | REQ-002, REQ-007, REQ-009 | App | open |
+| REQ-006 | Admin configuration commands and channel data reset | Expose /coffee admin command with admin only interactive UI<br/>Validate admin rights using Slack roles or configured lists<br/>Persist channel settings and retain audit trail for changes<br/>Implement channel scoped data reset honoring retention rules<br/>Communicate results of admin actions clearly in Slack messages | REQ-001, REQ-002, REQ-003, REQ-008 | App | open |
+| REQ-007 | Metrics logging and error handling behavior | Provide Prometheus metrics endpoint with required counters and histograms<br/>Implement structured JSON logging including correlation IDs and categories<br/>Define error handling middleware for HTTP endpoints and background tasks<br/>Avoid logging secrets or unnecessary message contents in all paths<br/>Validate metrics and logs against pilot observability expectations | REQ-010 | App | open |
+| REQ-008 | Postgres schema migrations and repository layer | Design SQL schema for all CoffeeBuddy entities with constraints<br/>Implement idempotent migrations usable across dev test and prod<br/>Provide connection pooling and health checks for Postgres access<br/>Implement repositories supporting domain operations efficiently<br/>Document schema and migration procedures for platform teams | REQ-010 | Infra | open |
+| REQ-009 | Kafka topics configuration and client wrappers | Define and document required Kafka topics and configurations<br/>Implement producer wrapper for publishing domain events safely<br/>Implement consumer abstraction with offset and error handling<br/>Expose metrics for Kafka publish failures lag and processing<br/>Validate event flows in test environment end to end | REQ-010 | Infra | open |
+| REQ-010 | Runtime integration with Kubernetes Kong Vault Ory Prometheus | Build Python 3.12 container image with health endpoints exposed<br/>Provide Kubernetes manifests including Deployment Service and config<br/>Configure Kong Vault Ory and Prometheus integration for service<br/>Ensure deployment uses only on prem resources and Slack<br/>Document deployment steps configuration and environment variables |  | Infra | in_progress |
+
+zed users<br>Channel config updates persisted and auditable<br>Data reset removes channel historical impact on fairness|REQ-001, REQ-002, REQ-003, REQ-008|App|open|
 |REQ-007|Metrics logging and error handling behavior|Prometheus metrics endpoint exposes required counters and histograms<br>Structured logs include correlation IDs and avoid sensitive data<br>User facing errors are clear and instructive|REQ-010|App|open|
 |REQ-008|Postgres schema migrations and repository layer|All entities mapped to tables with constraints<br>Migrations runnable idempotently across environments<br>Repository APIs support domain operations efficiently|REQ-010|Infra|open|
 |REQ-009|Kafka topics configuration and client wrappers|Required topics created and documented<br>Producer and consumer wrappers abstract Kafka usage<br>Error handling and retries configured per policy|REQ-010|Infra|open|

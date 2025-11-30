@@ -1,14 +1,7 @@
 """
-Runtime integration layer for CoffeeBuddy (REQ-010).
-
-This package exposes:
-
-- Settings: environment-driven configuration for runtime wiring.
-- Vault and Ory client abstractions and default HTTP implementations.
-- `create_app`: the FastAPI application factory with health and metrics
-  endpoints suitable for Kubernetes + Kong deployment.
+Runtime integration helpers (Kubernetes, Kong, Vault, Ory, Prometheus).
 """
 
-from .app import create_app, Settings
+from .container import build_runtime, app  # noqa: F401
 
-__all__ = ["create_app", "Settings"]
+__all__ = ["build_runtime", "app"]

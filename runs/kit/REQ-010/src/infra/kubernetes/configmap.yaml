@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coffeebuddy-config
+data:
+  SERVICE_NAME: "coffeebuddy-service"
+  SERVICE_ENV: "pilot"
+  SERVICE_PORT: "8080"
+  METRICS_PATH: "/metrics"
+  KAFKA_BROKERS: "kafka-1:9092,kafka-2:9092"
+  KAFKA_SECURITY_PROTOCOL: "SASL_SSL"
+  DATABASE_POOL_MIN: "2"
+  DATABASE_POOL_MAX: "10"
+  ORY_ISSUER_URL: "https://ory.internal.example.com"
+  ORY_AUDIENCE: "coffeebuddy"
+  ORY_CLIENT_ID: "coffeebuddy-service"
+  VAULT_ADDR: "https://vault.internal.example.com"
+  VAULT_ROLE: "coffeebuddy-runtime"

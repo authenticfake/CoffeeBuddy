@@ -1,0 +1,16 @@
+_format_version: "1.1"
+services:
+  - name: coffeebuddy
+    url: http://coffeebuddy.coffeebuddy.svc.cluster.local
+    routes:
+      - name: coffeebuddy-slack-route
+        paths:
+          - /slack
+        strip_path: true
+        methods: ["POST"]
+        protocols: ["https"]
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 120
+              policy: local

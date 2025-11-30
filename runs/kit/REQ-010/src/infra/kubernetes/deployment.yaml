@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coffeebuddy
+  labels:
+    app: coffeebuddy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: coffeebuddy
+  template:
+    metadata:
+      labels:
+        app: coffeebuddy
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-secret-slack: "secret/data/coffeebuddy/slack"
+        vault.hashicorp.com/role: "coffeebuddy-runtime"
+    spec:
+      serviceAccountName: coffeebuddy-sa
+      containers:
+        - name: coffeebuddy
+          image: registry.example.com/coffeebuddy/service:0.1.0
+          imagePullPolicy: IfNotPresent
+          command: ["/entrypoint.sh"]
+          envFrom:
+            - configMapRef:
+                name: coffeebuddy-config
+            - secretRef:
+                name: coffeebuddy-secrets
+          ports:
+            - containerPort: 8080
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 10
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 10
+            initialDelaySeconds: 5
+          volumeMounts:
+            - name: vault-token
+              mountPath: /var/run/secrets/vault
+      volumes:
+        - name: vault-token
+          emptyDir: {}
+      initContainers:
+        - name: wait-for-vault-token
+          image: registry.example.com/platform/vault-init:latest
+          command: ["sh", "-c", "test -f /var/run/secrets/vault/token"]
+          volumeMounts:
+            - name: vault-token
+              mountPath: /var/run/secrets/vault

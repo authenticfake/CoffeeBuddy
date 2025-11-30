@@ -3,64 +3,58 @@
   "req_id": "REQ-010",
   "lane": "infra",
   "env": {
-    "COFFEEBUDDY_ENVIRONMENT": "test",
-    "COFFEEBUDDY_HTTP_PORT": "8080"
+    "PYTHONPATH": "runs/kit/REQ-010/src"
   },
   "tools": {
-    "tests": "pytest",
-    "lint": "",
-    "types": "",
-    "security": "",
-    "build": "uvicorn"
+    "tests": [
+      "pytest"
+    ],
+    "lint": [],
+    "types": [],
+    "security": [],
+    "build": [
+      "docker"
+    ]
   },
   "commands": {
-    "tests": "pytest -q runs/kit/REQ-010/test"
+    "tests": "mkdir -p runs/kit/REQ-010/reports && pytest -q runs/kit/REQ-010/test --junitxml=runs/kit/REQ-010/reports/junit.xml"
   },
   "cases": [
     {
       "name": "tests",
-      "run": "pytest -q runs/kit/REQ-010/test",
+      "run": "mkdir -p runs/kit/REQ-010/reports && pytest -q runs/kit/REQ-010/test --junitxml=runs/kit/REQ-010/reports/junit.xml",
       "cwd": ".",
       "pip-file": "runs/kit/REQ-010/requirements.txt",
-      "expect": 0,
-      "timeout": 600
+      "expect": 0
     }
   ],
   "reports": [
     {
       "kind": "junit",
-      "path": "reports/junit-REQ-010.xml",
+      "path": "runs/kit/REQ-010/reports/junit.xml",
       "format": "junit-xml"
-    },
-    {
-      "kind": "coverage",
-      "path": "reports/coverage-REQ-010.xml",
-      "format": "coverage-xml"
     }
   ],
+  "normalize": {
+    "tests": [
+      {
+        "from": "runs/kit/REQ-010/reports/junit.xml",
+        "kind": "junit"
+      }
+    ]
+  },
   "gate_policy": {
     "tests_pass": true,
-    "coverage_min": 0.0,
+    "coverage_min": 0.8,
     "security": {
       "bandit_high": 0
     }
   },
-  "normalize": {
-    "junit": "reports/junit-REQ-010.xml",
-    "coverage": "reports/coverage-REQ-010.xml"
-  },
-  "external_runner": null,
-  "constraints_applied": {
-    "runtime": "python@3.12",
-    "platform": "kubernetes",
-    "storage": [
-      "postgres"
-    ],
-    "messaging": [
-      "kafka"
-    ],
-    "observability": [
-      "prometheus"
-    ]
-  }
+  "constraints_applied": [
+    "python@3.12",
+    "kubernetes",
+    "postgres",
+    "kafka",
+    "prometheus"
+  ]
 }

@@ -1,75 +1,40 @@
-# REQ-010 — Runtime integration with Kubernetes, Kong, Vault, Ory, Prometheus
+# Runtime Integration (REQ-010)
 
-This REQ establishes the CoffeeBuddy runtime shell that can be deployed
-to Kubernetes and integrated with the on-prem platform stack.
+## Purpose
+Provides the CoffeeBuddy runtime shell required for on-prem Kubernetes deployment, including health/metrics endpoints, configuration bindings for Vault, Ory, Postgres, Kafka, and Kong, plus deployment manifests.
 
-## What’s included
-
-- FastAPI-based ASGI application factory:
-  - `coffeebuddy.infrastructure.runtime.create_app`
-- Health endpoints:
-  - `GET /health/live` — liveness.
-  - `GET /health/ready` — readiness (Vault + Ory health).
-- Prometheus metrics endpoint:
-  - `GET /metrics` (path configurable via `COFFEEBUDDY_METRICS_PATH`).
-- Vault and Ory HTTP clients behind small Protocol interfaces.
-- Example Kubernetes Deployment/Service with probes and Prometheus
-  annotations.
-- Example Kong route configuration for Slack-facing traffic.
-- Unit tests for health and metrics behavior.
+## Key Components
+| Path | Description |
+| --- | --- |
+| `coffeebuddy/infrastructure/runtime/config.py` | Environment-driven configuration loader with validation |
+| `coffeebuddy/infrastructure/runtime/app.py` | FastAPI factory exposing `/health/live`, `/health/ready`, and `/metrics` |
+| `coffeebuddy/infrastructure/runtime/probes.py` | Probe registry and default environment readiness probe |
+| `coffeebuddy/infrastructure/runtime/container.py` | Wires config, readiness probes, and metrics registry |
+| `src/Dockerfile` + `scripts/docker-entrypoint.sh` | Production container image definition |
+| `src/infra/kubernetes/*.yaml` | Deployment, Service, ServiceMonitor, ConfigMap, Ingress for Kong |
+| `src/infra/kong/service-route.yaml` | Kong declarative configuration for Slack route |
+| `src/infra/vault/policy.hcl` | Vault policy binding for CoffeeBuddy secrets |
+| `src/infra/ory/client.yaml` | Ory rule enabling authenticated ingress traffic |
 
 ## Configuration
+Set the following environment variables (typically via ConfigMap/Secrets):
 
-Configuration is environment-driven via `Settings` (`pydantic.BaseSettings`):
+- Core: `SERVICE_NAME`, `SERVICE_ENV`, `SERVICE_PORT`, `SERVICE_VERSION`
+- Slack: `SLACK_SIGNING_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_APP_ID`
+- Database: `DATABASE_URL`, `DATABASE_POOL_MIN`, `DATABASE_POOL_MAX`
+- Kafka: `KAFKA_BROKERS`, `KAFKA_SECURITY_PROTOCOL`, `KAFKA_SASL_USERNAME`, `KAFKA_SASL_PASSWORD`
+- Vault: `VAULT_ADDR`, `VAULT_ROLE`, `VAULT_TOKEN_PATH`, `VAULT_SECRET_PATHS`
+- Ory: `ORY_ISSUER_URL`, `ORY_AUDIENCE`, `ORY_CLIENT_ID`
+- Metrics: `METRICS_PATH`, `PROMETHEUS_MULTIPROC_DIR`, `METRICS_ENABLE_PROCESS`
 
-- `COFFEEBUDDY_APP_NAME` (default `coffeebuddy`)
-- `COFFEEBUDDY_ENVIRONMENT` (`dev` | `test` | `prod`, default `dev`)
-- `COFFEEBUDDY_HTTP_HOST` (default `0.0.0.0`)
-- `COFFEEBUDDY_HTTP_PORT` (default `8080`)
-- `VAULT_ADDR` — base URL for Vault (e.g. `https://vault.internal:8200`)
-- `VAULT_TOKEN` — Vault token (from Kubernetes Secret)
-- `ORY_BASE_URL` — base URL for Ory services
-- `COFFEEBUDDY_METRICS_PATH` — metrics path (default `/metrics`)
+## Health & Metrics
+- `/health/live`: process-level heartbeat
+- `/health/ready`: readiness based on registered probes
+- `/metrics`: Prometheus-compatible metrics (service info + process collectors)
 
-## How to run locally
-
-From the project root:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-
-pip install -r runs/kit/REQ-010/requirements.txt
-
-export COFFEEBUDDY_ENVIRONMENT=dev
-export COFFEEBUDDY_HTTP_PORT=8080
-
-uvicorn coffeebuddy.infrastructure.runtime.app:create_app --factory --host 0.0.0.0 --port 8080
-```
-
-Then visit:
-
-- `http://localhost:8080/health/live`
-- `http://localhost:8080/health/ready`
-- `http://localhost:8080/metrics`
-
-## How to run tests
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-
-pip install -r runs/kit/REQ-010/requirements.txt
-
-pytest -q runs/kit/REQ-010/test
-```
-
-## Notes and Assumptions
-
-- Vault and Ory are treated as required for readiness. When they are
-  misconfigured or unavailable, `/health/ready` returns `503` so
-  Kubernetes can avoid routing traffic to the pod.
-- Secrets (Vault token, etc.) must be provided via Kubernetes Secrets
-  and MUST NOT be logged. This KIT only surfaces their presence via
-  configuration; logging and tracing details will be addressed in
-  REQ-007.
+## Deployment Flow
+1. Build container via provided `Dockerfile`.
+2. Apply `ConfigMap`, `Secrets`, `Vault` policy, and `ServiceAccount`.
+3. Deploy Kubernetes manifests (Deployment, Service, ServiceMonitor).
+4. Configure Kong ingress route and Ory/OIDC rule.
+5. Point Slack slash-command + interaction URLs at Kong host.

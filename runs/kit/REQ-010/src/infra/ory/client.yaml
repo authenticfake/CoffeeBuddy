@@ -1,0 +1,18 @@
+apiVersion: oathkeeper.ory.sh/v1alpha1
+kind: Rule
+metadata:
+  name: coffeebuddy-slack
+spec:
+  description: "Authorize Slack traffic into CoffeeBuddy"
+  match:
+    url: <https://coffeebuddy.slack.internal.example.com/slack>
+    methods:
+      - POST
+  authenticators:
+    - handler: oauth2_client_credentials
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: id_token
+  upstream:
+    url: <http://coffeebuddy.coffeebuddy.svc.cluster.local/slack>

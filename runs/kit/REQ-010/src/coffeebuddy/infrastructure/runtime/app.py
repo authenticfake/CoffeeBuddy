@@ -1,119 +1,96 @@
 from __future__ import annotations
 
-from typing import Callable, Optional
+import uuid
+from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import JSONResponse, Response
+from fastapi import FastAPI, Response, status
+from fastapi.responses import JSONResponse
+from prometheus_client import (
+    CollectorRegistry,
+    CONTENT_TYPE_LATEST,
+    Gauge,
+    PlatformCollector,
+    ProcessCollector,
+    generate_latest,
+    multiprocess,
+)
 from starlette.requests import Request
 
-from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest
-
-from .clients import OryClient, VaultClient, build_ory_client, build_vault_client
-from .settings import Settings, get_settings
+from .config import ServiceConfig
+from .probes import ReadinessRegistry
 
 
-def _get_vault_client(request: Request) -> VaultClient:
-    return request.app.state.vault_client  # type: ignore[no-any-return]
-
-
-def _get_ory_client(request: Request) -> OryClient:
-    return request.app.state.ory_client  # type: ignore[no-any-return]
+def build_metrics_registry(config: ServiceConfig) -> CollectorRegistry:
+    registry = CollectorRegistry()
+    if config.metrics.multiprocess_dir:
+        multiprocess.MultiProcessCollector(registry)
+    elif config.metrics.enable_default_process_metrics:
+        ProcessCollector(registry=registry)
+        PlatformCollector(registry=registry)
+    return registry
 
 
 def create_app(
-    settings: Optional[Settings] = None,
-    *,
-    vault_client_factory: Optional[Callable[[Settings], VaultClient]] = None,
-    ory_client_factory: Optional[Callable[[Settings], OryClient]] = None,
+    config: ServiceConfig,
+    readiness_registry: Optional[ReadinessRegistry] = None,
     registry: Optional[CollectorRegistry] = None,
 ) -> FastAPI:
-    """
-    Application factory for the CoffeeBuddy service.
-
-    - Provides `/health/live` and `/health/ready` for Kubernetes probes.
-    - Exposes `/metrics` in Prometheus format.
-    - Wires Vault and Ory health checks via injected client factories.
-
-    Parameters
-    ----------
-    settings:
-        Optional explicit Settings instance; when None, environment-driven
-        `get_settings()` is used (cached).
-    vault_client_factory:
-        Factory to create the VaultClient. Used to inject fakes in tests.
-    ory_client_factory:
-        Factory to create the OryClient. Used to inject fakes in tests.
-    registry:
-        Optional Prometheus CollectorRegistry. If None, the default
-        global registry is used.
-    """
-    cfg = settings or get_settings()
+    readiness_registry = readiness_registry or ReadinessRegistry()
+    registry = registry or build_metrics_registry(config)
 
     app = FastAPI(
-        title="CoffeeBuddy",
-        version="0.1.0",
-        description="CoffeeBuddy runtime service (REQ-010) with health and metrics.",
+        title="CoffeeBuddy Runtime",
+        description="Runtime entrypoint for Slack + platform integrations.",
+        version=config.version,
+        debug=config.debug_enabled,
     )
 
-    # Build platform clients
-    vault_factory = vault_client_factory or build_vault_client
-    ory_factory = ory_client_factory or build_ory_client
+    app.state.config = config
+    app.state.readiness = readiness_registry
+    app.state.registry = registry
 
-    app.state.settings = cfg
-    app.state.vault_client = vault_factory(cfg)
-    app.state.ory_client = ory_factory(cfg)
-    app.state.metrics_registry = registry
+    service_info = Gauge(
+        "coffeebuddy_service_info",
+        "Static info about the CoffeeBuddy service",
+        ["environment", "version"],
+        registry=registry,
+    )
+    service_info.labels(config.environment, config.version).set(1)
 
-    @app.get("/health/live", tags=["health"])
-    async def health_live() -> dict:
-        """
-        Liveness probe: indicates the process and main loop are running.
+    @app.middleware("http")
+    async def correlation_middleware(request: Request, call_next):
+        correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+        request.state.correlation_id = correlation_id
+        response = await call_next(request)
+        response.headers["X-Correlation-ID"] = correlation_id
+        return response
 
-        This endpoint MUST NOT perform heavy checks or external calls.
-        """
-        return {"status": "live"}
-
-    @app.get("/health/ready", tags=["health"])
-    async def health_ready(
-        vault: VaultClient = Depends(_get_vault_client),
-        ory: OryClient = Depends(_get_ory_client),
-    ) -> JSONResponse:
-        """
-        Readiness probe: verifies core dependencies required for serving
-        traffic are available (Vault and Ory for REQ-010).
-
-        Returns:
-            200 with component statuses when ready.
-            503 when any dependency is unavailable.
-        """
-        vault_ok = await vault.health_check()
-        ory_ok = await ory.health_check()
-
-        status = {
-            "status": "ready" if (vault_ok and ory_ok) else "degraded",
-            "components": {
-                "vault": "ok" if vault_ok else "unavailable",
-                "ory": "ok" if ory_ok else "unavailable",
-            },
+    @app.get("/health/live")
+    async def liveness() -> dict:
+        return {
+            "status": "alive",
+            "service": config.service_name,
+            "version": config.version,
+            "environment": config.environment,
         }
 
-        if not (vault_ok and ory_ok):
-            # For Kubernetes, a non-2xx status on readiness is sufficient
-            # to mark the pod as not ready for traffic.
-            raise HTTPException(status_code=503, detail=status)
+    @app.get("/health/ready")
+    async def readiness():
+        ready, results = await app.state.readiness.evaluate()
+        payload = {
+            "status": "ready" if ready else "not_ready",
+            "service": config.service_name,
+            "probes": [result.__dict__ for result in results],
+        }
+        status_code = status.HTTP_200_OK if ready else status.HTTP_503_SERVICE_UNAVAILABLE
+        return JSONResponse(payload, status_code=status_code)
 
-        return JSONResponse(content=status)
-
-    @app.get(cfg.metrics_path, tags=["metrics"])
-    async def metrics() -> Response:
-        """
-        Prometheus metrics endpoint.
-
-        Uses either the provided `registry` (primarily for tests) or the
-        default global registry created by prometheus_client.
-        """
-        current_registry = app.state.metrics_registry
-        data = generate_latest(current_registry) if current_registry else generate_latest()
+    @app.get(config.metrics.path)
+    async def metrics():
+        data = generate_latest(app.state.registry)
         return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
     return app
+
+
+__all__ = ["create_app", "build_metrics_registry"]

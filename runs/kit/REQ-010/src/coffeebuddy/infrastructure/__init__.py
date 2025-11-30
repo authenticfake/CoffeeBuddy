@@ -1,7 +1,5 @@
 """
-Infrastructure layer for CoffeeBuddy.
-
-REQ-010 introduces the `runtime` module, which is responsible for
-Kubernetes-facing runtime behavior: ASGI app wiring, health endpoints,
-and hooks to platform services like Vault, Ory, and Prometheus.
+Infrastructure layer aggregating runtime, db, kafka, and platform adapters.
 """
+
+__all__ = ["runtime"]
