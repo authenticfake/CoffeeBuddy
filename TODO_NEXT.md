@@ -1,10 +1,7 @@
-# FINALIZE
+## TODO_NEXT
 
-## Backlog
-- Automate reminder backfill after Kafka outages (currently manual via CLI).
-- Add synthetic Slack workspace tests in CI to validate interactive block rendering.
-- Expand observability with trace IDs and alert thresholds for reminder lag.
-- Provide self-serve channel analytics (basic run history export) for office managers.
-
-## Assumptions
-- Priorities will be revisited once pilot feedback is collected; list reflects highest-impact gaps today.
+- Implement channel-scoped rate limiting to guard against slash-command flooding and provide clearer Slack error messaging.
+- Introduce background retention job that prunes runs/preferences beyond `data_retention_days` without manual admin intervention.
+- Expand reminder scheduling to support multiple offsets (e.g., runner + participants) configurable per channel.
+- Add audit export endpoints or integrations (e.g., pushing `ChannelAdminAction` records to SIEM) for enterprise compliance teams.
+- Provide localization scaffolding to prepare for multilingual UX once pilot feedback requests it.

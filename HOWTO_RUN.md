@@ -1,65 +1,80 @@
-# FINALIZE
+## HOWTO_RUN
 
-## CLI Workflow
-- **API Service**
-  ```bash
-  source .venv/bin/activate  # ensure dependencies installed
-  uvicorn coffeebuddy.main:app --host 0.0.0.0 --port 8080 --reload
-  ```
-  - Health checks: `curl http://localhost:8080/health/live` and `/health/ready`.
-  - Metrics: `curl http://localhost:8080/metrics`.
-- **Reminder Worker**
-  ```bash
-  export KAFKA_CONSUMER_GROUP=coffeebuddy-reminders-dev
-  python -m coffeebuddy.jobs.reminders.consumer
-  ```
-  The worker consumes `coffeebuddy.reminder.events` and posts Slack DMs via shared Slack client helpers.
-- **Scheduler Trigger (optional)**
-  ```bash
-  python -m coffeebuddy.jobs.reminders.scheduler --dry-run
-  ```
-  Use to backfill reminder jobs if Kafka downtime occurs.
+### CLI Services
+1. **API service**
+   ```bash
+   export $(grep -v '^#' .env.local | xargs)  # optional helper
+   poetry run uvicorn coffeebuddy.api.main:app --host 0.0.0.0 --port ${PORT:-8080}
+   ```
+   Health probes: `GET /health/live`, `GET /health/ready`. Metrics: `GET /metrics`.
 
-## API & Postman
-- FastAPI docs (if enabled) at `http://localhost:8080/docs` for internal operations endpoints (`/health`, `/metrics`).
-- Slack-facing routes are POST endpoints under `/slack/commands` and `/slack/interactions`.
-- Postman collection: `docs/postman/coffeebuddy.postman_collection.json`.
-  - Import, set environment variables (`slackSigningSecret`, `apiBaseUrl`, `botToken`).
-  - Collection includes flows for `/coffee`, order modal submissions, admin commands, and reminder callbacks.
+2. **Reminder worker**
+   ```bash
+   poetry run python -m coffeebuddy.jobs.reminders.consumer \
+     --group ${REMINDER_WORKER_GROUP:-coffeebuddy-reminders} \
+     --topic coffeebuddy.reminder.events
+   ```
 
-## Docker & Compose
+3. **Scheduler/backfill (optional)**
+   ```bash
+   poetry run python -m coffeebuddy.jobs.reminders.backfill --dry-run
+   ```
+
+### API & Postman
+- Import the Postman collection at `docs/postman/coffeebuddy.postman_collection.json` (assumption: kept in sync with FastAPI routes).
+- Collection folders:
+  - `Slack /coffee`: simulates slash command payloads (set `channel_id`, `user_id`, `text`).
+  - `Slack Interaction`: block_action payload samples for order modal submissions.
+  - `Admin`: `/coffee admin` commands covering enable/disable and reset flows.
+- Use the Postman `Pre-request Script` to compute Slack signature (`X-Slack-Signature`, `X-Slack-Request-Timestamp`) via the signing secret.
+
+### Docker Workflow
 ```bash
-docker compose -f deploy/docker-compose.yml up --build
-# Follow logs
-docker compose logs -f api worker kafka
-# Health verification
-docker compose exec api curl -f http://localhost:8080/health/ready
-# Shutdown
-docker compose -f deploy/docker-compose.yml down -v
+docker compose up --build api worker postgres kafka
+docker compose ps
+docker compose logs -f api worker
+docker compose exec postgres psql -U coffeebuddy -c '\dt'
+# Health checks
+curl -f http://localhost:8080/health/live
+curl -f http://localhost:8080/metrics
+# Teardown
+docker compose down -v
 ```
-- **Health Checks**: Kubernetes probes map to `/health/live` and `/health/ready`. Compose exposes the same endpoints.
-- **Logs**: Structured JSON logs stream via `docker compose logs -f`.
-- **Teardown**: Always include `-v` to drop local Postgres volumes when refreshing schema.
 
-## Broker Details
-- Local development spins up a single-node Kafka via Compose; production references platform-managed brokers.
-- Topics:
-  - `coffeebuddy.run.events`: produced by API, consumed by analytics/reminder scheduler.
-  - `coffeebuddy.reminder.events`: produced by scheduler, consumed by reminder worker.
-- ACL expectations: service principal `svc_coffeebuddy` requires `WRITE` on run events and `READ` on reminder events.
+### Broker Expectations
+- Topics defined in code: `coffeebuddy.run.events`, `coffeebuddy.reminder.events`.
+- Local Kafka (Compose) exposes `PLAINTEXT://kafka:9092`; override via `KAFKA_BROKERS`.
+- Reminder payload schema: `{ "run_id": UUID, "channel_id": UUID, "runner_slack_id": str, "pickup_time": ISO8601, "reminder_offset_minutes": int, "last_call": bool }`.
+- Set ACL principal to `serviceAccount:coffeebuddy` with `READ`/`WRITE` on both topics.
 
-## Env Vars & .env Strategy
+### Docker/Kubernetes Health
+- `kubectl rollout status deploy/coffeebuddy-api`
+- `kubectl logs deploy/coffeebuddy-worker -f`
+- Kong route `/slack/events` must return 2xx for Slack challenge.
+- Prometheus scrape config should target `coffeebuddy-api:9464/metrics`.
+
+### Environment Variables
 | Variable | Scope | Notes |
 | --- | --- | --- |
-| `SLACK_BOT_TOKEN` | API & worker | Vault-injected in prod; load from `.env` for local testing. |
-| `SLACK_SIGNING_SECRET` | API | Required to verify Slack signatures. |
-| `DATABASE_URL` | API | Points to Postgres; Compose wires `postgres://cbuddy:cbuddy@postgres:5432/coffeebuddy`. |
-| `KAFKA_BOOTSTRAP_SERVERS` | API & worker | Example: `kafka:9092` in Compose. |
-| `KAFKA_SASL_*` | Worker (optional) | Enable when brokers require SASL/SCRAM. |
-| `ORY_ISSUER` | API | Needed when calling other cluster services. |
-| `REMINDER_OFFSET_DEFAULT` | API | Seed value overridden per channel. |
-| `.env` loading | CLI | `python-dotenv` auto-loads `.env` when present; keep secrets out of VCS. For Compose, reference `deploy/.env.example` and copy to `.env`. |
+| `SLACK_SIGNING_SECRET` | API | Mandatory for every request verification. |
+| `SLACK_BOT_TOKEN` | API/worker | Used for channel posts and DMs. |
+| `DATABASE_URL` | API/worker | Provided via Vault secret mount; load with SQLAlchemy. |
+| `KAFKA_BROKERS` | API/worker | Comma-separated `host:port`. |
+| `KAFKA_SSL_CA` | optional | Required when brokers enforce TLS. |
+| `REMINDER_WORKER_GROUP` | worker | Distinguishes consumer offsets. |
+| `CHANNEL_DEFAULT_REMINDER_MINUTES` | API | Applies when channel not configured. |
+| `CHANNEL_DEFAULT_RETENTION_DAYS` | API | Governs pruning jobs. |
+| `DISABLE_REMINDERS` | optional | Flag to short-circuit reminder scheduling (`true/false`). |
+| `LOG_LEVEL` | both | Defaults to `INFO`. |
+| `PROMETHEUS_METRICS_PORT` | API | Binds metrics server. |
+| `VAULT_ADDR`, `VAULT_ROLE_ID`, `VAULT_SECRET_ID` | both | For AppRole auth when fetching secrets. |
+| `OIDC_ISSUER`, `OIDC_AUDIENCE` | API | For Ory token validation on internal calls. |
 
-## Assumptions
-- `deploy/docker-compose.yml` provisions Postgres, Kafka, and optional Kong mock.
-- Postman collection exists at the documented path; regenerate if missing via internal tooling.
+`.env` loading strategy:
+- Local dev: place non-secret defaults in `.env.local`, then `export $(cat .env.local | xargs)`.
+- CI/staging/prod: mount via Vault agent or Kubernetes secrets; never commit real values.
+
+### Assumptions
+- FastAPI entrypoint `coffeebuddy.api.main:app` exists (aligns with KIT scaffolding).
+- Postman collection file path may need regeneration if missing.
+- Ports (8080 API, 9464 metrics) follow platform templates; adjust if manifests differ.
