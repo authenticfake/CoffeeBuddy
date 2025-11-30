@@ -2,7 +2,7 @@
 
 ## Plan Snapshot
 
-- **Counts:** total=10 / open=9 / in_progress=1 / done=0 / deferred=0
+- **Counts:** total=10 / open=8 / in_progress=2 / done=0 / deferred=0
 - **Progress:** 0% complete
 - **Checklist:**
   - [x] SPEC aligned
@@ -114,7 +114,7 @@ Per-REQ ownership:
 | REQ-005 | Reminder scheduling and Kafka driven execution | Schedule reminders when runs have pickup_time and reminders enabled<br/>Represent reminders as durable Kafka events with due timestamps<br/>Consume reminder events and send Slack DMs and last call messages<br/>Respect per channel reminder enable disable settings at execution<br/>Ensure reminder timing within plus minus one minute of target | REQ-002, REQ-007, REQ-009 | App | open |
 | REQ-006 | Admin configuration commands and channel data reset | Expose /coffee admin command with admin only interactive UI<br/>Validate admin rights using Slack roles or configured lists<br/>Persist channel settings and retain audit trail for changes<br/>Implement channel scoped data reset honoring retention rules<br/>Communicate results of admin actions clearly in Slack messages | REQ-001, REQ-002, REQ-003, REQ-008 | App | open |
 | REQ-007 | Metrics logging and error handling behavior | Provide Prometheus metrics endpoint with required counters and histograms<br/>Implement structured JSON logging including correlation IDs and categories<br/>Define error handling middleware for HTTP endpoints and background tasks<br/>Avoid logging secrets or unnecessary message contents in all paths<br/>Validate metrics and logs against pilot observability expectations | REQ-010 | App | open |
-| REQ-008 | Postgres schema migrations and repository layer | Design SQL schema for all CoffeeBuddy entities with constraints<br/>Implement idempotent migrations usable across dev test and prod<br/>Provide connection pooling and health checks for Postgres access<br/>Implement repositories supporting domain operations efficiently<br/>Document schema and migration procedures for platform teams | REQ-010 | Infra | open |
+| REQ-008 | Postgres schema migrations and repository layer | Design SQL schema for all CoffeeBuddy entities with constraints<br/>Implement idempotent migrations usable across dev test and prod<br/>Provide connection pooling and health checks for Postgres access<br/>Implement repositories supporting domain operations efficiently<br/>Document schema and migration procedures for platform teams | REQ-010 | Infra | in_progress |
 | REQ-009 | Kafka topics configuration and client wrappers | Define and document required Kafka topics and configurations<br/>Implement producer wrapper for publishing domain events safely<br/>Implement consumer abstraction with offset and error handling<br/>Expose metrics for Kafka publish failures lag and processing<br/>Validate event flows in test environment end to end | REQ-010 | Infra | open |
 | REQ-010 | Runtime integration with Kubernetes Kong Vault Ory Prometheus | Build Python 3.12 container image with health endpoints exposed<br/>Provide Kubernetes manifests including Deployment Service and config<br/>Configure Kong Vault Ory and Prometheus integration for service<br/>Ensure deployment uses only on prem resources and Slack<br/>Document deployment steps configuration and environment variables |  | Infra | in_progress |
 

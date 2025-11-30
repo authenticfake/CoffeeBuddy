@@ -1,0 +1,65 @@
+{
+  "version": "1.0",
+  "req_id": "REQ-009",
+  "lane": "kafka",
+  "tools": {
+    "tests": "pytest",
+    "lint": "n/a",
+    "types": "n/a",
+    "security": "n/a",
+    "build": "n/a"
+  },
+  "commands": {
+    "tests": "pytest -q runs/kit/REQ-009/test"
+  },
+  "cases": [
+    {
+      "name": "tests",
+      "run": "pytest -q runs/kit/REQ-009/test",
+      "cwd": ".",
+      "pip-file": "runs/kit/REQ-009/requirements.txt",
+      "expect": 0,
+      "timeout": 600
+    }
+  ],
+  "reports": [
+    {
+      "kind": "junit",
+      "path": "runs/kit/REQ-009/reports/junit.xml",
+      "format": "junit-xml"
+    }
+  ],
+  "env": {
+    "PYTHONPATH": "runs/kit/REQ-009/src"
+  },
+  "normalize": {
+    "tests": {
+      "format": "pytest",
+      "path": "runs/kit/REQ-009/test"
+    }
+  },
+  "gate_policy": {
+    "tests_pass": true,
+    "coverage_min": 0.8,
+    "security": {
+      "bandit_high": 0
+    }
+  },
+  "external_runner": null,
+  "constraints_applied": {
+    "runtime": "python@3.12",
+    "platform": "kubernetes",
+    "messaging": "kafka",
+    "observability": "prometheus"
+  }
+}
+
+file:/runs/kit/REQ-009/ci/HOWTO.md
+# CI / Execution HOWTO — REQ-009
+
+## Prerequisites
+- Python 3.12
+- Access to internal package index or PyPI mirror for `aiokafka`, `prometheus-client`, `pytest`, `pytest-asyncio`.
+- Local or remote Kafka cluster only required for manual integration tests (unit tests mock Kafka).
+
+## Environment Setup

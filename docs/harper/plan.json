@@ -1,8 +1,8 @@
 {
   "snapshot": {
     "total": 10,
-    "open": 9,
-    "in_progress": 1,
+    "open": 8,
+    "in_progress": 2,
     "done": 0,
     "deferred": 0,
     "progressPct": 0
@@ -165,7 +165,7 @@
         "REQ-010"
       ],
       "track": "Infra",
-      "status": "open",
+      "status": "in_progress",
       "lane": "sql",
       "test_profile": "pytest-db-migrations",
       "gate_policy_ref": "docs/harper/lane-guides/sql.md"

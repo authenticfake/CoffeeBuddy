@@ -1,0 +1,4 @@
+aiokafka==0.10.0
+prometheus-client==0.20.0
+pytest==8.2.2
+pytest-asyncio==0.23.6
