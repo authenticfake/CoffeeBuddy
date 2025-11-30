@@ -1,5 +1,3 @@
-"""Reminder orchestration utilities for CoffeeBuddy."""
+"""Reminder scheduling and delivery helpers for CoffeeBuddy."""
 
-from .scheduler import ChannelReminderConfig, ReminderScheduler
-
-__all__ = ["ChannelReminderConfig", "ReminderScheduler"]
+__all__ = ["scheduler", "sender", "messages"]

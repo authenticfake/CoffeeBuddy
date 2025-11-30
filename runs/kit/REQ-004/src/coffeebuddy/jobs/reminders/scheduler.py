@@ -10,23 +10,35 @@ from coffeebuddy.infra.kafka.models import KafkaEvent, ReminderPayload, Reminder
 from coffeebuddy.infra.kafka.topics import REMINDER_EVENTS_TOPIC
 
 LOGGER = logging.getLogger(__name__)
+MIN_DELAY_SECONDS = 5
 
 
 class EventPublisher(Protocol):
-    """Minimal abstraction over Kafka event publishing."""
+    """Minimal abstraction over the Kafka producer."""
 
     def publish(self, *, topic: str, event: KafkaEvent) -> None: ...
 
 
 @dataclass(frozen=True)
 class ChannelReminderConfig:
-    """Snapshot of channel reminder settings captured at scheduling time."""
+    """Snapshot of per-channel reminder switches captured during scheduling."""
 
     channel_id: str
     reminders_enabled: bool
     reminder_offset_minutes: int
     last_call_enabled: bool
     last_call_lead_minutes: int | None = None
+
+
+@dataclass(frozen=True)
+class RunReminderContext:
+    """Inputs required to schedule reminder payloads."""
+
+    run_id: str
+    channel_id: str
+    runner_user_id: str | None
+    pickup_time: datetime | None
+    correlation_id: str
 
 
 class ReminderScheduler:
@@ -37,120 +49,146 @@ class ReminderScheduler:
         publisher: EventPublisher,
         *,
         reminder_event_type: str = "reminder_scheduled",
-        id_factory: Callable[[], str] | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._publisher = publisher
         self._event_type = reminder_event_type
-        self._id_factory = id_factory or (lambda: uuid4().hex)
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     def schedule_for_run(
         self,
         *,
-        run_id: str,
-        pickup_time: datetime | None,
-        runner_user_id: str | None,
-        channel: ChannelReminderConfig,
-        correlation_id: str,
-    ) -> List[ReminderPayload]:
-        """Enqueue runner and optional last-call reminders if permitted."""
-        if pickup_time is None:
-            LOGGER.debug("Run %s has no pickup time; skipping reminders.", run_id)
+        context: RunReminderContext,
+        config: ChannelReminderConfig,
+    ) -> List[KafkaEvent]:
+        if context.pickup_time is None:
+            LOGGER.info("Skipping reminder scheduling because pickup time not provided", extra={"run_id": context.run_id})
+            return []
+        if not config.reminders_enabled:
+            LOGGER.info(
+                "Skipping reminder scheduling because channel disabled reminders",
+                extra={"channel_id": config.channel_id, "run_id": context.run_id},
+            )
             return []
 
-        aware_pickup = self._as_aware(pickup_time)
-        scheduled_payloads: List[ReminderPayload] = []
+        pickup_time = self._ensure_timezone(context.pickup_time)
+        events: List[KafkaEvent] = []
 
-        if channel.reminders_enabled and runner_user_id:
-            payload = self._build_payload(
-                run_id=run_id,
-                channel=channel,
-                runner_user_id=runner_user_id,
-                scheduled_for=aware_pickup - timedelta(minutes=channel.reminder_offset_minutes),
-                reminder_type="runner",
-                correlation_id=correlation_id,
-            )
-            self._publish(payload)
-            scheduled_payloads.append(payload)
-        elif channel.reminders_enabled and not runner_user_id:
-            LOGGER.info(
-                "Run %s has pickup time but no runner yet; runner reminder not scheduled.",
-                run_id,
-            )
-        else:
-            LOGGER.info(
-                "Reminders disabled for channel %s; runner reminder suppressed.", channel.channel_id
-            )
+        runner_event = self._maybe_build_runner_event(context=context, config=config, pickup_time=pickup_time)
+        if runner_event:
+            self._publisher.publish(topic=REMINDER_EVENTS_TOPIC.name, event=runner_event)
+            events.append(runner_event)
 
-        if (
-            channel.reminders_enabled
-            and channel.last_call_enabled
-            and channel.last_call_lead_minutes
-            and channel.last_call_lead_minutes > 0
-        ):
-            payload = self._build_payload(
-                run_id=run_id,
-                channel=channel,
-                runner_user_id=None,
-                scheduled_for=aware_pickup - timedelta(minutes=channel.last_call_lead_minutes),
-                reminder_type="last_call",
-                correlation_id=correlation_id,
-            )
-            self._publish(payload)
-            scheduled_payloads.append(payload)
-        elif channel.last_call_enabled and not channel.reminders_enabled:
-            LOGGER.info(
-                "Last-call enabled but reminders disabled globally for channel %s.",
-                channel.channel_id,
-            )
+        last_call_event = self._maybe_build_last_call_event(context=context, config=config, pickup_time=pickup_time)
+        if last_call_event:
+            self._publisher.publish(topic=REMINDER_EVENTS_TOPIC.name, event=last_call_event)
+            events.append(last_call_event)
 
-        return scheduled_payloads
+        return events
+
+    def _maybe_build_runner_event(
+        self,
+        *,
+        context: RunReminderContext,
+        config: ChannelReminderConfig,
+        pickup_time: datetime,
+    ) -> KafkaEvent | None:
+        if context.runner_user_id is None:
+            LOGGER.warning(
+                "Runner not assigned; runner reminder skipped",
+                extra={"run_id": context.run_id},
+            )
+            return None
+        scheduled_for = pickup_time - timedelta(minutes=config.reminder_offset_minutes)
+        scheduled_for = self._ensure_future(scheduled_for)
+        payload = self._build_payload(
+            context=context,
+            reminder_type="runner",
+            scheduled_for=scheduled_for,
+            config=config,
+        )
+        LOGGER.info(
+            "Queued runner reminder",
+            extra={
+                "run_id": context.run_id,
+                "reminder_id": payload.reminder_id,
+                "scheduled_for": scheduled_for.isoformat(),
+            },
+        )
+        return self._wrap_event(payload)
+
+    def _maybe_build_last_call_event(
+        self,
+        *,
+        context: RunReminderContext,
+        config: ChannelReminderConfig,
+        pickup_time: datetime,
+    ) -> KafkaEvent | None:
+        if not config.last_call_enabled or config.last_call_lead_minutes is None:
+            return None
+        scheduled_for = pickup_time - timedelta(minutes=config.last_call_lead_minutes)
+        scheduled_for = self._ensure_future(scheduled_for)
+        payload = self._build_payload(
+            context=context,
+            reminder_type="last_call",
+            scheduled_for=scheduled_for,
+            config=config,
+        )
+        LOGGER.info(
+            "Queued last call reminder",
+            extra={
+                "run_id": context.run_id,
+                "reminder_id": payload.reminder_id,
+                "scheduled_for": scheduled_for.isoformat(),
+            },
+        )
+        return self._wrap_event(payload)
 
     def _build_payload(
         self,
         *,
-        run_id: str,
-        channel: ChannelReminderConfig,
-        runner_user_id: str | None,
-        scheduled_for: datetime,
+        context: RunReminderContext,
         reminder_type: ReminderType,
-        correlation_id: str,
+        scheduled_for: datetime,
+        config: ChannelReminderConfig,
     ) -> ReminderPayload:
-        payload = ReminderPayload(
-            reminder_id=self._id_factory(),
-            run_id=str(run_id),
-            channel_id=str(channel.channel_id),
-            runner_user_id=str(runner_user_id) if runner_user_id else None,
+        return ReminderPayload(
+            reminder_id=str(uuid4()),
+            run_id=context.run_id,
+            channel_id=context.channel_id,
+            runner_user_id=context.runner_user_id,
             reminder_type=reminder_type,
             scheduled_for=scheduled_for,
-            reminder_offset_minutes=channel.reminder_offset_minutes,
-            channel_reminders_enabled=channel.reminders_enabled,
-            last_call_enabled=channel.last_call_enabled,
-            correlation_id=correlation_id,
+            reminder_offset_minutes=config.reminder_offset_minutes,
+            channel_reminders_enabled=config.reminders_enabled,
+            last_call_enabled=config.last_call_enabled,
+            correlation_id=context.correlation_id,
         )
-        LOGGER.debug(
-            "Built reminder payload %s for run %s (type=%s).",
-            payload.reminder_id,
-            run_id,
-            reminder_type,
-        )
-        return payload
 
-    def _publish(self, payload: ReminderPayload) -> None:
-        event = KafkaEvent(
+    def _wrap_event(self, payload: ReminderPayload) -> KafkaEvent:
+        return KafkaEvent(
             event_type=self._event_type,
             correlation_id=payload.correlation_id,
-            payload=payload.model_dump(),
+            payload=payload.model_dump(mode="json"),
         )
-        LOGGER.info(
-            "Publishing reminder %s for channel %s to topic %s.",
-            payload.reminder_id,
-            payload.channel_id,
-            REMINDER_EVENTS_TOPIC.name,
-        )
-        self._publisher.publish(topic=REMINDER_EVENTS_TOPIC.name, event=event)
+
+    def _ensure_future(self, scheduled_for: datetime) -> datetime:
+        now = self._clock()
+        min_allowed = now + timedelta(seconds=MIN_DELAY_SECONDS)
+        if scheduled_for < min_allowed:
+            return min_allowed
+        return scheduled_for
 
     @staticmethod
-    def _as_aware(timestamp: datetime) -> datetime:
-        if timestamp.tzinfo is None:
-            return timestamp.replace(tzinfo=timezone.utc)
-        return timestamp.astimezone(timezone.utc)
+    def _ensure_timezone(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
+
+
+__all__ = [
+    "ReminderScheduler",
+    "ChannelReminderConfig",
+    "RunReminderContext",
+    "EventPublisher",
+]
